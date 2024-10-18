@@ -19,14 +19,21 @@ func main() {
 	// Пока таблица не угадана
 	for !IsDone {
 		// Создаем дополнение таблицы для префиксов
-		for _, OldPrefix := range et.Prefixes {
+		for _, oldPrefix := range et.Prefixes {
+			// Для каждого символа алфавита
 			for _, letter := range alphabet {
+				// Создаем новые префиксы
 				prefix := Prefix{
-					Value:  OldPrefix.Value + string(letter),
+					Value:  oldPrefix.Value + string(letter),
 					IsMain: false,
 				}
+				// Предупреждаем дублирование
 				if !et.ContainsMainPrefix(prefix) {
 					et.AddPrefix(prefix)
+					// Задаем вопросы MAT, заполняем таблицу
+					for _, suffix := range et.Suffixes {
+						et.AskUserForWord(prefix.Value, suffix.Value)
+					}
 				}
 			}
 		}

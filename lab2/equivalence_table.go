@@ -23,14 +23,14 @@ type EquivalenceTable struct {
 	Table    map[string]map[string]bool // Таблица значений: префикс -> суффикс -> bool
 }
 
-// NewEquivalenceTable - Создание новой таблицы эквивалентности
+// NewEquivalenceTable - Создание новой таблицы
 func NewEquivalenceTable(prefixes []Prefix, suffixes []Suffix) *EquivalenceTable {
 	table := make(map[string]map[string]bool)
 
 	for _, prefix := range prefixes {
 		table[prefix.Value] = make(map[string]bool)
 		for _, suffix := range suffixes {
-			table[prefix.Value][suffix.Value] = false // Инициализируем значения false по умолчанию
+			table[prefix.Value][suffix.Value] = false // По умолчанию
 		}
 	}
 
@@ -78,7 +78,7 @@ func (et *EquivalenceTable) AddSuffix(newSuffix Suffix) {
 	}
 }
 
-// Update - Функция для обновления значения в таблице
+// Update - обновление значения в таблице
 func (et *EquivalenceTable) Update(prefix, suffix string, value bool) {
 	if _, exists := et.Table[prefix]; exists {
 		et.Table[prefix][suffix] = value
@@ -124,7 +124,7 @@ func (et *EquivalenceTable) ArePrefixesEquivalent(prefix1, prefix2 string) bool 
 	return true
 }
 
-// PrintTable - Функция для печати таблицы
+// PrintTable - Функция для вывода таблицы в консоль
 func (et *EquivalenceTable) PrintTable() {
 	// Печать суффиксов
 	fmt.Print("   ")
