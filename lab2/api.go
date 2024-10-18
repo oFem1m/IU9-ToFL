@@ -18,7 +18,7 @@ func (et *EquivalenceTable) AskUserForWord(prefix, suffix string) {
 	et.Update(prefix, suffix, value)
 }
 
-// AskUserForTable - Функция, которая спрашивает пользователя, является ли данная таблица искомым авотматом
+// AskUserForTable - Функция, которая спрашивает пользователя, является ли данная таблица искомым автоматом
 func (et *EquivalenceTable) AskUserForTable() string {
 	et.PrintTable()
 	var response string

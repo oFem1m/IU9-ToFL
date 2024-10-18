@@ -17,8 +17,20 @@ func main() {
 		// Заполняем пустые значения таблицы
 		for _, prefix := range et.Prefixes {
 			for _, suffix := range et.Suffixes {
-				if et.Table[prefix.Value][suffix] == '0' {
-					et.AskUserForWord(prefix.Value, suffix)
+				// Если ячейка пуста
+				if et.GetValue(prefix.Value, suffix) == '0' {
+					word := prefix.Value + suffix
+					// Проверяем наличие слова в словаре
+					if et.CheckWord(word) {
+						// Если слово принадлежит языку
+						if et.Words[word] {
+							et.Update(prefix.Value, suffix, '+')
+						} else {
+							et.Update(prefix.Value, suffix, '-')
+						}
+					} else {
+						et.AskUserForWord(prefix.Value, suffix)
+					}
 				}
 			}
 		}
@@ -32,12 +44,22 @@ func main() {
 						Value:  oldPrefix.Value + string(letter),
 						IsMain: false,
 					}
-					// Предупреждаем дублирование
-					if !et.ContainsMainPrefix(prefix) {
-						et.AddPrefix(prefix)
-						// Задаем вопросы MAT, заполняем таблицу
+					// Если префикс удалось добавить
+					if et.AddPrefix(prefix) {
+						// По необходимости задаём вопросы MAT, заполняем таблицу
 						for _, suffix := range et.Suffixes {
-							et.AskUserForWord(prefix.Value, suffix)
+							word := prefix.Value + suffix
+							// Проверяем наличие слова в словаре
+							if et.CheckWord(word) {
+								// Если слово принадлежит языку
+								if et.Words[word] {
+									et.Update(prefix.Value, suffix, '+')
+								} else {
+									et.Update(prefix.Value, suffix, '-')
+								}
+							} else {
+								et.AskUserForWord(prefix.Value, suffix)
+							}
 						}
 					}
 				}
@@ -58,10 +80,6 @@ func main() {
 				et.AddSuffix(response[i:])
 			}
 		}
-
-		// Печать таблицы
-		et.PrintTable()
-
 	}
 
 }
