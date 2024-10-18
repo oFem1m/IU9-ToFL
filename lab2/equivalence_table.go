@@ -10,27 +10,26 @@ type Prefix struct {
 	IsMain bool   // Является ли частью главной таблицы
 }
 
-// Suffix - Структура для хранения суффикса и флага принадлежности к главной части таблицы
-type Suffix struct {
-	Value  string // Сам суффикс
-	IsMain bool   // Является ли частью главной таблицы
-}
+//// Suffix - Структура для хранения суффикса
+//type Suffix struct {
+//	Value string // Сам суффикс
+//}
 
 // EquivalenceTable - Структура таблицы эквивалентности
 type EquivalenceTable struct {
 	Prefixes []Prefix                   // Префиксы
-	Suffixes []Suffix                   // Суффиксы
-	Table    map[string]map[string]bool // Таблица значений: префикс -> суффикс -> bool
+	Suffixes []string                   // Суффиксы
+	Table    map[string]map[string]rune // Таблица значений: префикс -> суффикс -> bool
 }
 
 // NewEquivalenceTable - Создание новой таблицы
-func NewEquivalenceTable(prefixes []Prefix, suffixes []Suffix) *EquivalenceTable {
-	table := make(map[string]map[string]bool)
+func NewEquivalenceTable(prefixes []Prefix, suffixes []string) *EquivalenceTable {
+	table := make(map[string]map[string]rune)
 
 	for _, prefix := range prefixes {
-		table[prefix.Value] = make(map[string]bool)
+		table[prefix.Value] = make(map[string]rune)
 		for _, suffix := range suffixes {
-			table[prefix.Value][suffix.Value] = false // По умолчанию
+			table[prefix.Value][suffix] = '0' // По умолчанию
 		}
 	}
 
@@ -43,28 +42,21 @@ func NewEquivalenceTable(prefixes []Prefix, suffixes []Suffix) *EquivalenceTable
 
 // AddPrefix - Добавление нового префикса
 func (et *EquivalenceTable) AddPrefix(newPrefix Prefix) {
-	// Если префикс уже существует, ничего не делаем
-	for _, prefix := range et.Prefixes {
-		if prefix.Value == newPrefix.Value {
-			return
-		}
-	}
-
 	// Добавляем новый префикс в список
 	et.Prefixes = append(et.Prefixes, newPrefix)
-	et.Table[newPrefix.Value] = make(map[string]bool)
+	et.Table[newPrefix.Value] = make(map[string]rune)
 
 	// Инициализируем значения для каждого суффикса
 	for _, suffix := range et.Suffixes {
-		et.Table[newPrefix.Value][suffix.Value] = false
+		et.Table[newPrefix.Value][suffix] = '0'
 	}
 }
 
 // AddSuffix - Добавление нового суффикса
-func (et *EquivalenceTable) AddSuffix(newSuffix Suffix) {
+func (et *EquivalenceTable) AddSuffix(newSuffix string) {
 	// Если суффикс уже существует, ничего не делаем
 	for _, suffix := range et.Suffixes {
-		if suffix.Value == newSuffix.Value {
+		if suffix == newSuffix {
 			return
 		}
 	}
@@ -74,12 +66,12 @@ func (et *EquivalenceTable) AddSuffix(newSuffix Suffix) {
 
 	// Инициализируем значения для каждого префикса
 	for _, prefix := range et.Prefixes {
-		et.Table[prefix.Value][newSuffix.Value] = false
+		et.Table[prefix.Value][newSuffix] = '0'
 	}
 }
 
 // Update - обновление значения в таблице
-func (et *EquivalenceTable) Update(prefix, suffix string, value bool) {
+func (et *EquivalenceTable) Update(prefix, suffix string, value rune) {
 	if _, exists := et.Table[prefix]; exists {
 		et.Table[prefix][suffix] = value
 	}
@@ -87,18 +79,8 @@ func (et *EquivalenceTable) Update(prefix, suffix string, value bool) {
 
 // ContainsMainPrefix проверяет, содержится ли строка среди главных префиксов
 func (et *EquivalenceTable) ContainsMainPrefix(prefix Prefix) bool {
-	for _, s := range et.Suffixes {
+	for _, s := range et.Prefixes {
 		if s.IsMain && (s.Value == prefix.Value) {
-			return true
-		}
-	}
-	return false
-}
-
-// ContainsMainSuffix проверяет, содержится ли строка среди главных суффиксов
-func (et *EquivalenceTable) ContainsMainSuffix(suffix Prefix) bool {
-	for _, s := range et.Suffixes {
-		if s.IsMain && (s.Value == suffix.Value) {
 			return true
 		}
 	}
@@ -116,7 +98,7 @@ func (et *EquivalenceTable) ArePrefixesEquivalent(prefix1, prefix2 string) bool 
 
 	// Сравниваем значения для всех суффиксов
 	for _, suffix := range et.Suffixes {
-		if et.Table[prefix1][suffix.Value] != et.Table[prefix2][suffix.Value] {
+		if et.Table[prefix1][suffix] != et.Table[prefix2][suffix] {
 			return false
 		}
 	}
@@ -124,16 +106,37 @@ func (et *EquivalenceTable) ArePrefixesEquivalent(prefix1, prefix2 string) bool 
 	return true
 }
 
+// CompleteTable - Проверка таблицы на полноту и приведение её к полному виду
+func (et *EquivalenceTable) CompleteTable() {
+	for i, nonMainPrefix := range et.Prefixes {
+		// Проверяем только неглавные префиксы
+		if !nonMainPrefix.IsMain {
+			isEquivalent := false
+
+			// Сравниваем с каждым главным префиксом
+			for _, mainPrefix := range et.Prefixes {
+				if mainPrefix.IsMain && et.ArePrefixesEquivalent(nonMainPrefix.Value, mainPrefix.Value) {
+					isEquivalent = true
+					break
+				}
+			}
+
+			// Если неглавный префикс не эквивалентен ни одному главному
+			if !isEquivalent {
+				fmt.Printf("Префикс '%s' не эквивалентен ни одному главному префиксу. Добавляем его в основную часть.\n", nonMainPrefix.Value)
+				// Обновляем флаг, что этот префикс теперь главный
+				et.Prefixes[i].IsMain = true
+			}
+		}
+	}
+}
+
 // PrintTable - Функция для вывода таблицы в консоль
 func (et *EquivalenceTable) PrintTable() {
 	// Печать суффиксов
 	fmt.Print("   ")
 	for _, suffix := range et.Suffixes {
-		if suffix.IsMain {
-			fmt.Printf("%s(M) ", suffix.Value)
-		} else {
-			fmt.Printf("%s ", suffix.Value)
-		}
+		fmt.Printf("%s ", suffix)
 	}
 	fmt.Println()
 
@@ -145,7 +148,7 @@ func (et *EquivalenceTable) PrintTable() {
 			fmt.Printf("%s ", prefix.Value)
 		}
 		for _, suffix := range et.Suffixes {
-			fmt.Printf("%v ", et.Table[prefix.Value][suffix.Value])
+			fmt.Printf("%c ", et.Table[prefix.Value][suffix])
 		}
 		fmt.Println()
 	}
