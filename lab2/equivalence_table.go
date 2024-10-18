@@ -110,6 +110,16 @@ func (et *EquivalenceTable) ContainsMainPrefix(prefix Prefix) bool {
 	return false
 }
 
+// AreAllPrefixesMain проверяет, являются ли все префиксы главными
+func (et *EquivalenceTable) AreAllPrefixesMain() bool {
+	for _, prefix := range et.Prefixes {
+		if !prefix.IsMain {
+			return false
+		}
+	}
+	return true
+}
+
 // ArePrefixesEquivalent - Проверяет, эквивалентны ли два префикса
 func (et *EquivalenceTable) ArePrefixesEquivalent(prefix1, prefix2 string) bool {
 	// Если хотя бы один префикс отсутствует в таблице, они не эквивалентны

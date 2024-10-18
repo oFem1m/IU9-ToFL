@@ -69,17 +69,18 @@ func main() {
 		// Проверяем таблицу на полноту и приводим к полному виду
 		et.CompleteTable()
 
-		// отправляем таблицу MAT
-		response := et.AskUserForTable()
-
-		// Если угадали, то конец меняем флаг, иначе - добавляем новые суффиксы
-		if response == "OK" {
-			IsDone = true
-		} else {
-			for i := 0; i < len(response); i++ {
-				et.AddSuffix(response[i:])
+		// Проверка, являются ли все префиксы главными
+		if !et.AreAllPrefixesMain() {
+			// отправляем таблицу MAT
+			response := et.AskUserForTable()
+			// Если угадали, то конец меняем флаг, иначе - добавляем новые суффиксы
+			if response == "OK" {
+				IsDone = true
+			} else {
+				for i := 0; i < len(response); i++ {
+					et.AddSuffix(response[i:])
+				}
 			}
 		}
 	}
-
 }
