@@ -77,6 +77,7 @@ func main() {
 			if response == "OK" {
 				IsDone = true
 			} else {
+				et.Words[response] = true
 				for i := 0; i < len(response); i++ {
 					et.AddSuffix(response[i:])
 				}
