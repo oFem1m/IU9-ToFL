@@ -28,7 +28,7 @@ func main() {
 						} else {
 							et.Update(prefix.Value, suffix, '-')
 						}
-					} else {
+					} else { // Иначе спрашиваем
 						et.AskUserForWord(prefix.Value, suffix)
 					}
 				}
@@ -57,7 +57,7 @@ func main() {
 								} else {
 									et.Update(prefix.Value, suffix, '-')
 								}
-							} else {
+							} else { // Иначе спрашиваем
 								et.AskUserForWord(prefix.Value, suffix)
 							}
 						}
