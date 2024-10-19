@@ -29,7 +29,13 @@ func main() {
 							et.Update(prefix.Value, suffix, '-')
 						}
 					} else { // Иначе спрашиваем
-						et.AskUserForWord(prefix.Value, suffix)
+						if et.AskUserForWord(word) {
+							if et.Words[word] {
+								et.Update(prefix.Value, suffix, '+')
+							} else {
+								et.Update(prefix.Value, suffix, '-')
+							}
+						}
 					}
 				}
 			}
@@ -58,7 +64,13 @@ func main() {
 									et.Update(prefix.Value, suffix, '-')
 								}
 							} else { // Иначе спрашиваем
-								et.AskUserForWord(prefix.Value, suffix)
+								if et.AskUserForWord(word) {
+									if et.Words[word] {
+										et.Update(prefix.Value, suffix, '+')
+									} else {
+										et.Update(prefix.Value, suffix, '-')
+									}
+								}
 							}
 						}
 					}
@@ -71,6 +83,39 @@ func main() {
 
 		// Проверка, являются ли все префиксы главными
 		if !et.AreAllPrefixesMain() {
+			inconsistency := true
+			for inconsistency {
+				if et.InconsistencyTable(alphabet) {
+					// Заполняем пустые значения таблицы
+					for _, prefix := range et.Prefixes {
+						for _, suffix := range et.Suffixes {
+							// Если ячейка пуста
+							if et.GetValue(prefix.Value, suffix) == '0' {
+								word := prefix.Value + suffix
+								// Проверяем наличие слова в словаре
+								if et.CheckWord(word) {
+									// Если слово принадлежит языку
+									if et.Words[word] {
+										et.Update(prefix.Value, suffix, '+')
+									} else {
+										et.Update(prefix.Value, suffix, '-')
+									}
+								} else { // Иначе спрашиваем
+									if et.AskUserForWord(word) {
+										if et.Words[word] {
+											et.Update(prefix.Value, suffix, '+')
+										} else {
+											et.Update(prefix.Value, suffix, '-')
+										}
+									}
+								}
+							}
+						}
+					}
+				} else {
+					inconsistency = false
+				}
+			}
 			// отправляем таблицу MAT
 			response := et.AskUserForTable()
 			// Если угадали, то конец меняем флаг, иначе - добавляем новые суффиксы

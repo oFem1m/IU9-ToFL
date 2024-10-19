@@ -3,19 +3,21 @@ package main
 import "fmt"
 
 // AskUserForWord - Функция, которая спрашивает пользователя, является ли данная строка словом языка
-func (et *EquivalenceTable) AskUserForWord(prefix, suffix string) {
-	word := prefix + suffix
+func (et *EquivalenceTable) AskUserForWord(word string) bool {
 	var response string
 
 	fmt.Printf("Является ли '%s' словом языка? (+/-): ", word)
 	fmt.Scanln(&response)
 
-	value := '-'
-	if response == "+" {
-		value = '+'
+	switch response {
+	case "+":
+		et.AddWord(word, true)
+		return true
+	case "-":
+		et.AddWord(word, false)
+		return true
 	}
-
-	et.Update(prefix, suffix, value)
+	return false
 }
 
 // AskUserForTable - Функция, которая спрашивает пользователя, является ли данная таблица искомым автоматом

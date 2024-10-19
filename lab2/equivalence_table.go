@@ -44,6 +44,15 @@ func (et *EquivalenceTable) CheckWord(word string) bool {
 	return exists
 }
 
+func (et *EquivalenceTable) AddWord(word string, belonging bool) bool {
+	_, exists := et.Words[word]
+	if !exists {
+		et.Words[word] = belonging
+		return true
+	}
+	return false
+}
+
 // GetValue - функция получения значения из таблицы
 func (et *EquivalenceTable) GetValue(prefix string, suffix string) rune {
 	return et.Table[prefix][suffix]
@@ -161,6 +170,55 @@ func (et *EquivalenceTable) CompleteTable() {
 			}
 		}
 	}
+}
+
+// InconsistencyTable - Проверка на противоречивость и исправление
+func (et *EquivalenceTable) InconsistencyTable(alphabet string) bool {
+	for i := 0; i < len(et.Prefixes); i++ {
+		prefix1 := et.Prefixes[i]
+		if !prefix1.IsMain {
+			continue
+		}
+
+		for j := i + 1; j < len(et.Prefixes); j++ {
+			prefix2 := et.Prefixes[j]
+			if !prefix2.IsMain {
+				continue
+			}
+
+			// Проверяем эквивалентность префиксов
+			if et.ArePrefixesEquivalent(prefix1.Value, prefix2.Value) {
+				// Ищем такие символы из алфавита и суффиксы v_k
+				for _, suffix := range et.Suffixes {
+					for _, letter := range alphabet { // Проходим по символам алфавита
+						word1 := prefix1.Value + string(letter) + suffix
+						word2 := prefix2.Value + string(letter) + suffix
+
+						flag1, ok1 := et.Words[word1]
+						flag2, ok2 := et.Words[word2]
+
+						if !ok1 {
+							et.AskUserForWord(word1)
+							flag1, ok1 = et.Words[word1]
+						}
+						if !ok2 {
+							et.AskUserForWord(word2)
+							flag2, ok2 = et.Words[word2]
+						}
+
+						if flag1 != flag2 {
+							// Найдено противоречие, добавляем новый суффикс a+v_k
+							fmt.Println("Найдено противоречие!")
+							newSuffix := string(letter) + suffix
+							et.AddSuffix(newSuffix)
+							return true // Возвращаем true, если было добавлено что-то новое
+						}
+					}
+				}
+			}
+		}
+	}
+	return false // противоречий нет
 }
 
 // PrintTable - Функция для вывода таблицы в консоль
