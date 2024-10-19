@@ -10,7 +10,7 @@ type Prefix struct {
 	IsMain bool   // Является ли частью главной таблицы
 }
 
-// EquivalenceTable - Структура таблицы эквивалентности
+// EquivalenceTable - Структура таблицы классов эквивалентности
 type EquivalenceTable struct {
 	Prefixes []Prefix                   // Префиксы
 	Suffixes []string                   // Суффиксы
@@ -91,7 +91,7 @@ func (et *EquivalenceTable) AddSuffix(newSuffix string) bool {
 
 	// Инициализируем значения для каждого префикса
 	for _, prefix := range et.Prefixes {
-		et.Table[prefix.Value][newSuffix] = '0'
+		et.Update(prefix.Value, newSuffix, '0')
 	}
 	return true
 }
