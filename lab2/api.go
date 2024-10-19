@@ -6,14 +6,14 @@ import "fmt"
 func (et *EquivalenceTable) AskUserForWord(word string) bool {
 	var response string
 
-	fmt.Printf("Является ли '%s' словом языка? (+/-): ", word)
+	fmt.Printf("Является ли '%s' словом языка? (1/0): ", word)
 	fmt.Scanln(&response)
 
 	switch response {
-	case "+":
+	case "1":
 		et.AddWord(word, true)
 		return true
-	case "-":
+	case "0":
 		et.AddWord(word, false)
 		return true
 	}
@@ -25,10 +25,10 @@ func (et *EquivalenceTable) AskUserForTable() string {
 	et.PrintTable()
 	var response string
 
-	fmt.Print("Верна ли таблица выше? (+/<контрпример>): ")
+	fmt.Print("Верна ли таблица выше? (true/<контрпример>): ")
 	fmt.Scanln(&response)
 
-	if response == "+" {
+	if response == "true" {
 		return "OK"
 	}
 	return response
