@@ -1,7 +1,12 @@
 package main
 
+import "fmt"
+
 func main() {
-	alphabet := "ab"
+	var alphabet string
+
+	fmt.Print("Введите символы алфавита одной строкой: ")
+	fmt.Scanln(&alphabet)
 
 	IsDone := false
 
