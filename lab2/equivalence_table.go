@@ -59,6 +59,11 @@ func (et *EquivalenceTable) GetValue(prefix string, suffix string) rune {
 	return et.Table[prefix][suffix]
 }
 
+// SetValue - функция внесения значения в таблицу
+func (et *EquivalenceTable) SetValue(prefix string, suffix string, value rune) {
+	et.Table[prefix][suffix] = value
+}
+
 // AddPrefix - Добавление нового префикса
 func (et *EquivalenceTable) AddPrefix(newPrefix Prefix) bool {
 	// Если префикс уже существует, ничего не делаем
@@ -99,7 +104,7 @@ func (et *EquivalenceTable) AddSuffix(newSuffix string) bool {
 // Update - обновление значения в таблице и добавление нового слова в словарь
 func (et *EquivalenceTable) Update(prefix, suffix string, value rune) {
 	if _, exists := et.Table[prefix]; exists {
-		et.Table[prefix][suffix] = value
+		et.SetValue(prefix, suffix, value)
 		word := prefix + suffix
 		switch value {
 		case '+':
@@ -131,7 +136,7 @@ func (et *EquivalenceTable) ArePrefixesEquivalent(prefix1, prefix2 string) bool 
 
 	// Сравниваем значения для всех суффиксов
 	for _, suffix := range et.Suffixes {
-		if et.Table[prefix1][suffix] != et.Table[prefix2][suffix] {
+		if et.GetValue(prefix1, suffix) != et.GetValue(prefix2, suffix) {
 			return false
 		}
 	}
@@ -228,7 +233,7 @@ func (et *EquivalenceTable) PrintTable() {
 			fmt.Printf("%s ", prefix.Value)
 		}
 		for _, suffix := range et.Suffixes {
-			fmt.Printf("%c ", et.Table[prefix.Value][suffix])
+			fmt.Printf("%c ", et.GetValue(prefix.Value, suffix))
 		}
 		fmt.Println()
 	}
