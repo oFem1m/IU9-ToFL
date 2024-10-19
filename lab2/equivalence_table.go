@@ -44,6 +44,7 @@ func (et *EquivalenceTable) CheckWord(word string) bool {
 	return exists
 }
 
+// AddWord - добавляет новое слово в словарь
 func (et *EquivalenceTable) AddWord(word string, belonging bool) bool {
 	_, exists := et.Words[word]
 	if !exists {
