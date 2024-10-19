@@ -218,14 +218,14 @@ func (et *EquivalenceTable) InconsistencyTable(alphabet string) bool {
 
 // PrintTable - Функция для вывода таблицы в консоль
 func (et *EquivalenceTable) PrintTable() {
-	// Печать суффиксов
+	// Вывод суффиксов
 	fmt.Print("  |")
 	for _, suffix := range et.Suffixes {
 		fmt.Printf("%s |", suffix)
 	}
 	fmt.Println()
 
-	// Печать префиксов и значений таблицы
+	// Вывод префиксов и значений таблицы
 	for _, prefix := range et.Prefixes {
 		if prefix.IsMain {
 			fmt.Printf("%s(M) ", prefix.Value)
@@ -238,7 +238,7 @@ func (et *EquivalenceTable) PrintTable() {
 		fmt.Println()
 	}
 
-	// Печать списка слов с флагами принадлежности к языку
+	// Вывод списка слов с флагами принадлежности к языку
 	fmt.Println("\nWords:")
 	for word, belongs := range et.Words {
 		fmt.Printf("%s: %v\n", word, belongs)
