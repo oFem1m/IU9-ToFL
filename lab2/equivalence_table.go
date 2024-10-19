@@ -110,16 +110,6 @@ func (et *EquivalenceTable) Update(prefix, suffix string, value rune) {
 	}
 }
 
-// ContainsMainPrefix проверяет, содержится ли строка среди главных префиксов
-func (et *EquivalenceTable) ContainsMainPrefix(prefix Prefix) bool {
-	for _, s := range et.Prefixes {
-		if s.IsMain && (s.Value == prefix.Value) {
-			return true
-		}
-	}
-	return false
-}
-
 // AreAllPrefixesMain проверяет, являются ли все префиксы главными
 func (et *EquivalenceTable) AreAllPrefixesMain() bool {
 	for _, prefix := range et.Prefixes {
@@ -209,7 +199,6 @@ func (et *EquivalenceTable) InconsistencyTable(alphabet string) bool {
 
 						if flag1 != flag2 {
 							// Найдено противоречие, добавляем новый суффикс a+v_k
-							fmt.Println("Найдено противоречие!")
 							newSuffix := string(letter) + suffix
 							et.AddSuffix(newSuffix)
 							return true // Возвращаем true, если было добавлено что-то новое
