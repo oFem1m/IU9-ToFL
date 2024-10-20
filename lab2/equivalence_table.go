@@ -194,11 +194,11 @@ func (et *EquivalenceTable) InconsistencyTable(alphabet string) bool {
 						flag2, ok2 := et.Words[word2]
 
 						if !ok1 {
-							et.AskUserForWord(word1)
+							et.AskForWord(word1)
 							flag1, ok1 = et.Words[word1]
 						}
 						if !ok2 {
-							et.AskUserForWord(word2)
+							et.AskForWord(word2)
 							flag2, ok2 = et.Words[word2]
 						}
 

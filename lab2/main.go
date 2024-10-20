@@ -1,17 +1,42 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
+
+var manualMode = true
+var server, port string
 
 func main() {
 	var alphabet string
 
 	fmt.Print("Введите символы алфавита одной строкой: ")
 	fmt.Scanln(&alphabet)
+	var response string
+	epsilon := ""
+	fmt.Print("Использовать ε в роли пустой строки? +/-: ")
+	fmt.Scanln(&response)
+	if response == "+" {
+		epsilon = "ε"
+	}
+
+	fmt.Print("Использовать Лернер в ручном режиме? (Без программы MAT) +/-: ")
+	fmt.Scanln(&response)
+	if response == "-" {
+		manualMode = false
+		fmt.Print("Введите ip-адрес и порт сервера MAT в формате <адрес>:<порт> ")
+		fmt.Scanln(&response)
+		// Разделяем строку на адрес и порт
+		parts := strings.Split(response, ":")
+		server = parts[0]
+		port = parts[1]
+	}
 
 	IsDone := false
 
 	prefixes := []Prefix{
-		{Value: "", IsMain: true},
+		{Value: epsilon, IsMain: true},
 	}
 	suffixes := []string{""}
 
@@ -34,7 +59,7 @@ func main() {
 							et.Update(prefix.Value, suffix, '-')
 						}
 					} else { // Иначе спрашиваем
-						if et.AskUserForWord(word) {
+						if et.AskForWord(word) {
 							if et.Words[word] {
 								et.Update(prefix.Value, suffix, '+')
 							} else {
@@ -69,7 +94,7 @@ func main() {
 									et.Update(prefix.Value, suffix, '-')
 								}
 							} else { // Иначе спрашиваем
-								if et.AskUserForWord(word) {
+								if et.AskForWord(word) {
 									if et.Words[word] {
 										et.Update(prefix.Value, suffix, '+')
 									} else {
@@ -106,7 +131,7 @@ func main() {
 										et.Update(prefix.Value, suffix, '-')
 									}
 								} else { // Иначе спрашиваем
-									if et.AskUserForWord(word) {
+									if et.AskForWord(word) {
 										if et.Words[word] {
 											et.Update(prefix.Value, suffix, '+')
 										} else {
@@ -122,9 +147,9 @@ func main() {
 				}
 			}
 			// отправляем таблицу MAT
-			response := et.AskUserForTable()
+			response := et.AskForTable()
 			// Если угадали, то конец меняем флаг, иначе - добавляем новые суффиксы
-			if response == "OK" {
+			if response == "true" {
 				IsDone = true
 			} else {
 				et.Words[response] = true
