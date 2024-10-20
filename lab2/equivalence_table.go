@@ -246,9 +246,9 @@ func (et *EquivalenceTable) InconsistencyTable(alphabet string) bool {
 // PrintTable - Функция для вывода таблицы в консоль
 func (et *EquivalenceTable) PrintTable() {
 	// Вывод суффиксов
-	fmt.Print("  |")
+	fmt.Print("   |")
 	for _, suffix := range et.Suffixes {
-		fmt.Printf("%s |", suffix)
+		fmt.Printf("%s|", suffix)
 	}
 	fmt.Println()
 
