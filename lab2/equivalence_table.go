@@ -264,10 +264,4 @@ func (et *EquivalenceTable) PrintTable() {
 		}
 		fmt.Println()
 	}
-
-	// Вывод списка слов с флагами принадлежности к языку
-	fmt.Println("\nWords:")
-	for word, belongs := range et.Words {
-		fmt.Printf("%s: %v\n", word, belongs)
-	}
 }
