@@ -38,7 +38,7 @@ func main() {
 	prefixes := []Prefix{
 		{Value: epsilon, IsMain: true},
 	}
-	suffixes := []string{""}
+	suffixes := []string{epsilon}
 
 	et := NewEquivalenceTable(prefixes, suffixes)
 
