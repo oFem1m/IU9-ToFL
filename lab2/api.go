@@ -75,8 +75,6 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 
 // AskForTable - Спрашивает, является ли данная таблица искомым автоматом
 func (et *EquivalenceTable) AskForTable() string {
-	et.PrintTable() // Вывод таблицы для наглядности
-
 	if manualMode {
 		// Ручной режим
 		var response string
