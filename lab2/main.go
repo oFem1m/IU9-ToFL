@@ -31,6 +31,9 @@ func main() {
 		parts := strings.Split(response, ":")
 		server = parts[0]
 		port = parts[1]
+		fmt.Print("Введите режим работы MAT (easy/medium/hard): ")
+		fmt.Scanln(&response)
+		SetModeForMAT(response)
 	}
 
 	IsDone := false

@@ -159,3 +159,23 @@ func (et *EquivalenceTable) AskForTable() string {
 		return responseMap["response"]
 	}
 }
+
+// SetModeForMAT - выбор одного из режимов MAT: easy, medium, hard
+func SetModeForMAT(mode string) bool {
+	url := fmt.Sprintf("http://%s:%s/generate", server, port)
+	requestBody, err := json.Marshal(map[string]string{
+		"mode": mode,
+	})
+	if err != nil {
+		fmt.Printf("Оwordшибка при формировании тела запроса: %v\n", err)
+		return false
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
+	if err != nil {
+		fmt.Printf("Ошибка при отправке запроса: %v\n", err)
+		return false
+	}
+	defer resp.Body.Close()
+	return true
+}
