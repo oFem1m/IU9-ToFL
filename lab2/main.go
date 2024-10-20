@@ -49,7 +49,21 @@ func main() {
 			for _, suffix := range et.Suffixes {
 				// Если ячейка пуста
 				if et.GetValue(prefix.Value, suffix) == '0' {
-					word := prefix.Value + suffix
+					currentPrefix := prefix.Value
+					currentSuffix := suffix
+					var word string
+					// Избавляемся от ε
+					if currentPrefix == "ε" && currentSuffix == "ε" {
+						word = "ε"
+					} else if currentPrefix == "ε" {
+						currentPrefix = ""
+						word = currentPrefix + currentSuffix
+					} else if currentSuffix == "ε" {
+						currentSuffix = ""
+						word = currentPrefix + currentSuffix
+					} else {
+						word = currentPrefix + currentSuffix
+					}
 					// Проверяем наличие слова в словаре
 					if et.CheckWord(word) {
 						// Если слово принадлежит языку
@@ -76,15 +90,25 @@ func main() {
 			for _, letter := range alphabet {
 				// Создаем новые префиксы на основе главных префиксов
 				if oldPrefix.IsMain {
+					currentPrefix := oldPrefix.Value
+					if currentPrefix == "ε" {
+						currentPrefix = ""
+					}
 					prefix := Prefix{
-						Value:  oldPrefix.Value + string(letter),
+						Value:  currentPrefix + string(letter),
 						IsMain: false,
 					}
 					// Если префикс удалось добавить
 					if et.AddPrefix(prefix) {
 						// По необходимости задаём вопросы MAT, заполняем таблицу
 						for _, suffix := range et.Suffixes {
-							word := prefix.Value + suffix
+							// Убираем ε-суффикс
+							currentSuffix := suffix
+							if currentSuffix == "ε" {
+								currentSuffix = ""
+							}
+							word := prefix.Value + currentSuffix
+
 							// Проверяем наличие слова в словаре
 							if et.CheckWord(word) {
 								// Если слово принадлежит языку
@@ -121,7 +145,21 @@ func main() {
 						for _, suffix := range et.Suffixes {
 							// Если ячейка пуста
 							if et.GetValue(prefix.Value, suffix) == '0' {
-								word := prefix.Value + suffix
+								currentPrefix := prefix.Value
+								currentSuffix := suffix
+								var word string
+								// Избавляемся от ε
+								if currentPrefix == "ε" && currentSuffix == "ε" {
+									word = "ε"
+								} else if currentPrefix == "ε" {
+									currentPrefix = ""
+									word = currentPrefix + currentSuffix
+								} else if currentSuffix == "ε" {
+									currentSuffix = ""
+									word = currentPrefix + currentSuffix
+								} else {
+									word = currentPrefix + currentSuffix
+								}
 								// Проверяем наличие слова в словаре
 								if et.CheckWord(word) {
 									// Если слово принадлежит языку

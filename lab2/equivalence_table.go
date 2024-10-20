@@ -105,7 +105,21 @@ func (et *EquivalenceTable) AddSuffix(newSuffix string) bool {
 func (et *EquivalenceTable) Update(prefix, suffix string, value rune) {
 	if _, exists := et.Table[prefix]; exists {
 		et.SetValue(prefix, suffix, value)
-		word := prefix + suffix
+		currentPrefix := prefix
+		currentSuffix := suffix
+		var word string
+		// Избавляемся от ε
+		if currentPrefix == "ε" && currentSuffix == "ε" {
+			word = "ε"
+		} else if currentPrefix == "ε" {
+			currentPrefix = ""
+			word = currentPrefix + currentSuffix
+		} else if currentSuffix == "ε" {
+			currentSuffix = ""
+			word = currentPrefix + currentSuffix
+		} else {
+			word = currentPrefix + currentSuffix
+		}
 		switch value {
 		case '+':
 			et.Words[word] = true
@@ -187,8 +201,21 @@ func (et *EquivalenceTable) InconsistencyTable(alphabet string) bool {
 				// Ищем такие символы из алфавита и суффиксы v_k
 				for _, suffix := range et.Suffixes {
 					for _, letter := range alphabet { // Проходим по символам алфавита
-						word1 := prefix1.Value + string(letter) + suffix
-						word2 := prefix2.Value + string(letter) + suffix
+						currentPrefix1 := prefix1.Value
+						currentPrefix2 := prefix1.Value
+						currentSuffix := suffix
+						// Избавляемся от ε
+						if currentPrefix1 == "ε" {
+							currentPrefix1 = ""
+						}
+						if currentPrefix2 == "ε" {
+							currentPrefix2 = ""
+						}
+						if currentSuffix == "ε" {
+							currentSuffix = ""
+						}
+						word1 := currentPrefix1 + string(letter) + currentSuffix
+						word2 := currentPrefix2 + string(letter) + currentSuffix
 
 						flag1, ok1 := et.Words[word1]
 						flag2, ok2 := et.Words[word2]
@@ -204,7 +231,7 @@ func (et *EquivalenceTable) InconsistencyTable(alphabet string) bool {
 
 						if flag1 != flag2 {
 							// Найдено противоречие, добавляем новый суффикс a+v_k
-							newSuffix := string(letter) + suffix
+							newSuffix := string(letter) + currentSuffix
 							et.AddSuffix(newSuffix)
 							return true // Возвращаем true, если было добавлено что-то новое
 						}
