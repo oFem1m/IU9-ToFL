@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 var manualMode = true
@@ -31,10 +32,13 @@ func main() {
 		parts := strings.Split(response, ":")
 		server = parts[0]
 		port = parts[1]
-		fmt.Print("Введите режим работы MAT (easy/medium/hard): ")
+		fmt.Print("Введите режим работы MAT (easy/normal/hard): ")
 		fmt.Scanln(&response)
 		SetModeForMAT(response)
 	}
+
+	// Время старта
+	start := time.Now()
 
 	IsDone := false
 
@@ -201,4 +205,7 @@ func main() {
 		}
 	}
 	et.PrintTable()
+	// Засекаем время
+	finish := time.Since(start)
+	fmt.Printf("Время выполнения программы: %s\n", finish)
 }
