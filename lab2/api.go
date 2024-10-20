@@ -177,5 +177,18 @@ func SetModeForMAT(mode string) bool {
 		return false
 	}
 	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Ошибка при чтении ответа: %v\n", err)
+		return false
+	}
+
+	var responseMap map[string]string
+	err = json.Unmarshal(body, &responseMap)
+	if err != nil {
+		fmt.Printf("Ошибка при разборе ответа: %v\n", err)
+		return false
+	}
 	return true
 }
