@@ -200,4 +200,5 @@ func main() {
 			}
 		}
 	}
+	et.PrintTable()
 }
