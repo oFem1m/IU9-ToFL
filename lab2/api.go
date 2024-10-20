@@ -77,6 +77,7 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 func (et *EquivalenceTable) AskForTable() string {
 	if manualMode {
 		// Ручной режим
+		et.PrintTable()
 		var response string
 		fmt.Print("Верна ли таблица выше? (true/<контрпример>): ")
 		fmt.Scanln(&response)
