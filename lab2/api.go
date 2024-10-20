@@ -50,8 +50,15 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 			return false
 		}
 
+		var responseMap map[string]string
+		err = json.Unmarshal(body, &responseMap)
+		if err != nil {
+			fmt.Printf("Ошибка при разборе ответа: %v\n", err)
+			return false
+		}
+
 		// Обрабатываем ответ
-		response := string(body)
+		response := responseMap["response"]
 		switch response {
 		case "1":
 			et.AddWord(word, true)
@@ -143,7 +150,12 @@ func (et *EquivalenceTable) AskForTable() string {
 			return "ERROR"
 		}
 
-		// Возвращаем ответ сервера (true или контрпример)
-		return string(body)
+		var responseMap map[string]string
+		err = json.Unmarshal(body, &responseMap)
+		if err != nil {
+			fmt.Printf("Ошибка при разборе ответа: %v\n", err)
+			return "ERROR"
+		}
+		return responseMap["response"]
 	}
 }
