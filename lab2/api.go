@@ -107,7 +107,7 @@ func (et *EquivalenceTable) AskForTable() string {
 		for _, prefix := range mainPrefixes {
 			for _, suffix := range et.Suffixes {
 				val := et.GetValue(prefix, suffix)
-				if val == '1' {
+				if val == '+' {
 					tableData = append(tableData, "1")
 				} else {
 					tableData = append(tableData, "0")
@@ -117,7 +117,7 @@ func (et *EquivalenceTable) AskForTable() string {
 		for _, prefix := range nonMainPrefixes {
 			for _, suffix := range et.Suffixes {
 				val := et.GetValue(prefix, suffix)
-				if val == '1' {
+				if val == '+' {
 					tableData = append(tableData, "1")
 				} else {
 					tableData = append(tableData, "0")
