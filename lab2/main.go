@@ -42,10 +42,11 @@ func main() {
 
 	IsDone := false
 
-	prefixes := []Prefix{
-		{Value: epsilon, IsMain: true},
+	// Инициализируем таблицу с картами префиксов и суффиксов
+	prefixes := map[string]Prefix{
+		epsilon: {Value: epsilon, IsMain: true},
 	}
-	suffixes := []string{epsilon}
+	suffixes := map[string]string{epsilon: epsilon}
 
 	et := NewEquivalenceTable(prefixes, suffixes)
 
@@ -193,7 +194,7 @@ func main() {
 			}
 			// отправляем таблицу MAT
 			response := et.AskForTable()
-			// Если угадали, то конец меняем флаг, иначе - добавляем новые суффиксы
+			// Если угадали, то конец, меняем флаг, иначе - добавляем новые суффиксы
 			if response == "true" {
 				IsDone = true
 			} else {

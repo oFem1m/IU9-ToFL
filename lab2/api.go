@@ -104,7 +104,7 @@ func (et *EquivalenceTable) AskForTable() string {
 
 		// Собираем значения таблицы
 		for _, prefix := range mainPrefixes {
-			for _, suffix := range et.Suffixes {
+			for _, suffix := range suffixes {
 				val := et.GetValue(prefix, suffix)
 				if val == '+' {
 					tableData = append(tableData, "1")
@@ -114,7 +114,7 @@ func (et *EquivalenceTable) AskForTable() string {
 			}
 		}
 		for _, prefix := range nonMainPrefixes {
-			for _, suffix := range et.Suffixes {
+			for _, suffix := range suffixes {
 				val := et.GetValue(prefix, suffix)
 				if val == '+' {
 					tableData = append(tableData, "1")
@@ -166,7 +166,7 @@ func SetModeForMAT(mode string) bool {
 		"mode": mode,
 	})
 	if err != nil {
-		fmt.Printf("Оwordшибка при формировании тела запроса: %v\n", err)
+		fmt.Printf("Ошибка при формировании тела запроса: %v\n", err)
 		return false
 	}
 
