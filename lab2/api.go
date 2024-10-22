@@ -11,7 +11,7 @@ import (
 
 // AskForWord - Спрашивает, является ли данная строка словом языка
 func (et *EquivalenceTable) AskForWord(word string) bool {
-	if manualMode {
+	if learnerMode == "manual" {
 		var response string
 		fmt.Printf("Является ли '%s' словом языка? (1/0): ", word)
 		fmt.Scanln(&response)
@@ -75,7 +75,7 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 
 // AskForTable - Спрашивает, является ли данная таблица искомым автоматом
 func (et *EquivalenceTable) AskForTable() string {
-	if manualMode {
+	if learnerMode == "manual" {
 		// Ручной режим
 		et.PrintTable()
 		var response string
@@ -177,17 +177,17 @@ func SetModeForMAT(mode string) bool {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Ошибка при чтении ответа: %v\n", err)
-		return false
-	}
-
-	var responseMap map[string]string
-	err = json.Unmarshal(body, &responseMap)
-	if err != nil {
-		fmt.Printf("Ошибка при разборе ответа: %v\n", err)
-		return false
-	}
+	//body, err := io.ReadAll(resp.Body)
+	//if err != nil {
+	//	fmt.Printf("Ошибка при чтении ответа: %v\n", err)
+	//	return false
+	//}
+	//
+	//var responseMap map[string]string
+	//err = json.Unmarshal(body, &responseMap)
+	//if err != nil {
+	//	fmt.Printf("Ошибка при разборе ответа: %v\n", err)
+	//	return false
+	//}
 	return true
 }

@@ -2,39 +2,26 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
-var manualMode = true
-var server, port string
+var learnerMode, server, port string
 
 func main() {
-	var alphabet string
-
-	fmt.Print("Введите символы алфавита одной строкой: ")
-	fmt.Scanln(&alphabet)
-	var response string
-	epsilon := ""
-	fmt.Print("Использовать ε в роли пустой строки? +/-: ")
-	fmt.Scanln(&response)
-	if response == "+" {
-		epsilon = "ε"
+	config, err := LoadConfig()
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
+	alphabet := config.Alphabet
+	epsilon := config.Epsilon
+	learnerMode = config.LearnerMode
+	server = config.ServerAddr
+	port = config.ServerPort
+	matMode := config.MatMode
 
-	fmt.Print("Использовать Лернер в ручном режиме? (Без программы MAT) +/-: ")
-	fmt.Scanln(&response)
-	if response == "-" {
-		manualMode = false
-		fmt.Print("Введите ip-адрес и порт сервера MAT в формате <адрес>:<порт> ")
-		fmt.Scanln(&response)
-		// Разделяем строку на адрес и порт
-		parts := strings.Split(response, ":")
-		server = parts[0]
-		port = parts[1]
-		fmt.Print("Введите режим работы MAT (easy/normal/hard): ")
-		fmt.Scanln(&response)
-		SetModeForMAT(response)
+	if learnerMode == "automatic" {
+		SetModeForMAT(matMode)
 	}
 
 	// Время старта
@@ -148,6 +135,7 @@ func main() {
 			inconsistency := true
 			for inconsistency {
 				if et.InconsistencyTable(alphabet) {
+					fmt.Println("inconsistency!")
 					// Заполняем пустые значения таблицы
 					for _, prefix := range et.Prefixes {
 						for _, suffix := range et.Suffixes {
