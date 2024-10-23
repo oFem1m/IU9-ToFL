@@ -18,6 +18,7 @@ type Config struct {
 
 func LoadConfig() (*Config, error) {
 	file, err := os.Open("/home/alexandr/BMSTU_git/IU9-ToFL/lab2/config.json")
+	// file, err := os.Open("E:/BMSTU_git/IU9-ToFL/lab2/config.json")
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при открытии файла конфигурации: %v", err)
 	}

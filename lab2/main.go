@@ -181,12 +181,16 @@ func main() {
 				}
 			}
 			// отправляем таблицу MAT
-			response := et.AskForTable()
+			response, responseType := et.AskForTable()
 			// Если угадали, то конец, меняем флаг, иначе - добавляем новые суффиксы
 			if response == "true" {
 				IsDone = true
 			} else {
-				et.Words[response] = true
+				if responseType == "true" {
+					et.Words[response] = true
+				} else {
+					et.Words[response] = false
+				}
 				for i := 0; i < len(response); i++ {
 					et.AddSuffix(response[i:])
 				}
