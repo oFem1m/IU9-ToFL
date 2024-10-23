@@ -38,7 +38,7 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 			return false
 		}
 
-		log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
+		// log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
 
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
 		if err != nil {
@@ -54,7 +54,7 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 			return false
 		}
 
-		log.Printf("Ответ от сервера: %s", string(body))
+		// log.Printf("Ответ от сервера: %s", string(body))
 
 		var responseMap map[string]string
 		err = json.Unmarshal(body, &responseMap)
@@ -65,7 +65,7 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 
 		// Обрабатываем ответ
 		response := responseMap["response"]
-		log.Printf("Результат разбора: %s", response)
+		// log.Printf("Результат разбора: %s", response)
 		switch response {
 		case "1":
 			et.AddWord(word, true)
