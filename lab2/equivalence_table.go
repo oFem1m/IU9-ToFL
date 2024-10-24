@@ -18,6 +18,17 @@ type EquivalenceTable struct {
 	Words    map[string]bool            // Словарь слов: слово -> принадлежность к языку
 }
 
+// Pair - структура пары строк
+type Pair struct {
+	First  string
+	Second string
+}
+
+// PrefixAndSuffixForWord - хранит необходимые префиксы и суффиксы для слова
+type PrefixAndSuffixForWord struct {
+	Pairs []Pair
+}
+
 // NewEquivalenceTable - Создание новой таблицы
 func NewEquivalenceTable(prefixes map[string]Prefix, suffixes map[string]string) *EquivalenceTable {
 	table := make(map[string]map[string]rune)
@@ -61,6 +72,15 @@ func (et *EquivalenceTable) GetValue(prefix string, suffix string) rune {
 
 // SetValue - функция внесения значения в таблицу
 func (et *EquivalenceTable) SetValue(prefix string, suffix string, value rune) {
+	// Проверка на существование префикса
+	if _, exists := et.Prefixes[prefix]; !exists {
+		return
+	}
+
+	// Проверка на существование суффикса
+	if _, exists := et.Suffixes[suffix]; !exists {
+		return
+	}
 	et.Table[prefix][suffix] = value
 }
 

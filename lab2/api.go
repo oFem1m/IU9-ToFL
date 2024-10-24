@@ -80,6 +80,74 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 	}
 }
 
+// AskForWordBatch - Спрашивает, является ли каждое слово в wordsToAsk словом языка
+func (et *EquivalenceTable) AskForWordBatch(wordsToAsk map[string]PrefixAndSuffixForWord) {
+	url := fmt.Sprintf("http://%s:%s/check-word-batch", server, port)
+
+	// Собираем список слов для отправки на сервер
+	words := make([]string, 0, len(wordsToAsk))
+	for word := range wordsToAsk {
+		words = append(words, word)
+	}
+
+	// Формируем тело запроса
+	type WordsRequest struct {
+		Words []string `json:"wordList"`
+	}
+	requestBody := WordsRequest{
+		Words: words,
+	}
+
+	// Сериализуем запрос в JSON
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		fmt.Errorf("Ошибка при формировании тела запроса: %v", err)
+		return
+	}
+
+	// Отправляем POST запрос на сервер
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		fmt.Errorf("Ошибка при отправке запроса: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Декодируем ответ сервера
+	type BoolResponse struct {
+		Bools []bool `json:"responseList"`
+	}
+	var response BoolResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		fmt.Errorf("Ошибка при декодировании JSON: %v", err)
+		return
+	}
+
+	// Проверка на количество слов и полученных результатов
+	if len(response.Bools) != len(words) {
+		fmt.Errorf("Некорректное количество ответов: ожидалось %d, получено %d", len(words), len(response.Bools))
+		return
+	}
+
+	// Обрабатываем каждый ответ
+	for i, word := range words {
+		belonging := response.Bools[i] // Получаем результат для текущего слова (true/false)
+
+		// Добавляем слово в словарь таблицы эквивалентности
+		et.AddWord(word, belonging)
+
+		// Обновляем значения в таблице по всем парам префикс/суффикс для этого слова
+		for _, pair := range wordsToAsk[word].Pairs {
+			if belonging {
+				et.Update(pair.First, pair.Second, '+')
+			} else {
+				et.Update(pair.First, pair.Second, '-')
+			}
+		}
+	}
+}
+
 // AskForTable - Спрашивает, является ли данная таблица искомым автоматом
 func (et *EquivalenceTable) AskForTable() (string, string) {
 	if learnerMode == "manual" {
@@ -156,22 +224,22 @@ func (et *EquivalenceTable) AskForTable() (string, string) {
 			return "ERROR", "ERROR"
 		}
 
-		log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
+		// log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
 
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
 		if err != nil {
-			log.Printf("Ошибка при отправке запроса: %v", err)
+			fmt.Errorf("Ошибка при отправке запроса: %v", err)
 			return "ERROR", "ERROR"
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf("Ошибка при чтении ответа: %v", err)
+			fmt.Errorf("Ошибка при чтении ответа: %v", err)
 			return "ERROR", "ERROR"
 		}
 
-		log.Printf("Ответ от сервера: %s", string(body))
+		// log.Printf("Ответ от сервера: %s", string(body))
 
 		var responseStruct struct {
 			Response string `json:"response"`
@@ -179,19 +247,19 @@ func (et *EquivalenceTable) AskForTable() (string, string) {
 		}
 		err = json.Unmarshal(body, &responseStruct)
 		if err != nil {
-			log.Printf("Ошибка при разборе ответа: %v", err)
+			fmt.Errorf("Ошибка при разборе ответа: %v", err)
 			return "ERROR", "ERROR"
 		}
 
 		// Возвращаем ответ в зависимости от типа
 		if responseStruct.Type == nil {
-			log.Printf("Таблица подтверждена.")
+			// log.Printf("Таблица подтверждена.")
 			return "true", "" // Автомат угадан
 		} else if *responseStruct.Type {
-			log.Printf("Контрпример: %s, тип: true", responseStruct.Response)
+			// log.Printf("Контрпример: %s, тип: true", responseStruct.Response)
 			return responseStruct.Response, "true"
 		} else {
-			log.Printf("Контрпример: %s, тип: false", responseStruct.Response)
+			// log.Printf("Контрпример: %s, тип: false", responseStruct.Response)
 			return responseStruct.Response, "false"
 		}
 	}
@@ -204,13 +272,13 @@ func SetModeForMAT(mode string) bool {
 		"mode": mode,
 	})
 	if err != nil {
-		fmt.Printf("Ошибка при формировании тела запроса: %v\n", err)
+		fmt.Errorf("Ошибка при формировании тела запроса: %v\n", err)
 		return false
 	}
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
-		fmt.Printf("Ошибка при отправке запроса: %v\n", err)
+		fmt.Errorf("Ошибка при отправке запроса: %v\n", err)
 		return false
 	}
 	defer resp.Body.Close()
