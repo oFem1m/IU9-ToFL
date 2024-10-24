@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -20,9 +22,8 @@ func main() {
 	port = config.ServerPort
 	matMode := config.MatMode
 
-	if learnerMode == "automatic" {
-		SetModeForMAT(matMode)
-	}
+	maxLexemeSize, _ := SetModeForMAT(matMode)
+	log.Printf("Максимальный размер лексеммы: %d", maxLexemeSize)
 
 	// Время старта
 	start := time.Now()
@@ -36,6 +37,31 @@ func main() {
 	suffixes := map[string]string{epsilon: epsilon}
 
 	et := NewEquivalenceTable(prefixes, suffixes)
+
+	eol := ""
+
+	// Генерация всех возможных строк для eol
+	possibleStrings := generateStrings(alphabet, maxLexemeSize)
+
+	for _, str := range possibleStrings {
+		if et.AskForEol(str) {
+			doubledStr := str + str + str + str + str + str + str
+			if et.AskForEol(doubledStr) {
+				eol = str
+				break
+			}
+		}
+	}
+	log.Printf("eol: %s", eol)
+
+	if eol != "" {
+		eolPrefix := Prefix{
+			Value:  eol,
+			IsMain: true,
+		}
+		et.AddPrefix(eolPrefix)
+		et.AddSuffix(eol)
+	}
 
 	// Пока таблица не угадана
 	for !IsDone {
@@ -92,6 +118,9 @@ func main() {
 		for _, oldPrefix := range et.Prefixes {
 			// Для каждого символа алфавита
 			for _, letter := range alphabet {
+				if strings.Contains(eol, string(letter)) {
+					continue
+				}
 				// Создаем новые префиксы на основе главных префиксов
 				if oldPrefix.IsMain {
 					currentPrefix := oldPrefix.Value
@@ -152,64 +181,64 @@ func main() {
 		// Проверка, являются ли все префиксы главными
 		if !et.AreAllPrefixesMain() {
 
-			//inconsistency := true
-			//for inconsistency {
-			//	if et.InconsistencyTable(alphabet) {
-			//		fmt.Println("inconsistency!")
-			//		// Заполняем пустые значения таблицы
-			//		for _, prefix := range et.Prefixes {
-			//			for _, suffix := range et.Suffixes {
-			//				// Если ячейка пуста
-			//				if et.GetValue(prefix.Value, suffix) == '0' {
-			//					currentPrefix := prefix.Value
-			//					currentSuffix := suffix
-			//					var word string
-			//					// Избавляемся от ε
-			//					if currentPrefix == "ε" && currentSuffix == "ε" {
-			//						word = "ε"
-			//					} else if currentPrefix == "ε" {
-			//						currentPrefix = ""
-			//						word = currentPrefix + currentSuffix
-			//					} else if currentSuffix == "ε" {
-			//						currentSuffix = ""
-			//						word = currentPrefix + currentSuffix
-			//					} else {
-			//						word = currentPrefix + currentSuffix
-			//					}
-			//					// Проверяем наличие слова в словаре
-			//					if et.CheckWord(word) {
-			//						// Если слово принадлежит языку
-			//						if et.Words[word] {
-			//							et.Update(prefix.Value, suffix, '+')
-			//						} else {
-			//							et.Update(prefix.Value, suffix, '-')
-			//						}
-			//					} else { // Иначе спрашиваем
-			//						// Проверяем, существует ли уже такое слово в карте
-			//						if _, exists := wordsToAsk[word]; !exists {
-			//							// Если слова нет, создаем новую запись с пустым списком пар
-			//							wordsToAsk[word] = PrefixAndSuffixForWord{
-			//								Pairs: make([]Pair, 0),
-			//							}
-			//						}
-			//						prefixSuffix := wordsToAsk[word]
-			//						// Добавляем текущие префикс и суффикс в список пар для данного слова
-			//						prefixSuffix.Pairs = append(wordsToAsk[word].Pairs, Pair{
-			//							First:  prefix.Value,
-			//							Second: suffix,
-			//						})
-			//						wordsToAsk[word] = prefixSuffix
-			//					}
-			//				}
-			//			}
-			//		}
-			//
-			//		et.AskForWordBatch(wordsToAsk)
-			//		wordsToAsk = make(map[string]PrefixAndSuffixForWord)
-			//	} else {
-			//		inconsistency = false
-			//	}
-			//}
+			inconsistency := true
+			for inconsistency {
+				if et.InconsistencyTable(alphabet) {
+					fmt.Println("inconsistency!")
+					// Заполняем пустые значения таблицы
+					for _, prefix := range et.Prefixes {
+						for _, suffix := range et.Suffixes {
+							// Если ячейка пуста
+							if et.GetValue(prefix.Value, suffix) == '0' {
+								currentPrefix := prefix.Value
+								currentSuffix := suffix
+								var word string
+								// Избавляемся от ε
+								if currentPrefix == "ε" && currentSuffix == "ε" {
+									word = "ε"
+								} else if currentPrefix == "ε" {
+									currentPrefix = ""
+									word = currentPrefix + currentSuffix
+								} else if currentSuffix == "ε" {
+									currentSuffix = ""
+									word = currentPrefix + currentSuffix
+								} else {
+									word = currentPrefix + currentSuffix
+								}
+								// Проверяем наличие слова в словаре
+								if et.CheckWord(word) {
+									// Если слово принадлежит языку
+									if et.Words[word] {
+										et.Update(prefix.Value, suffix, '+')
+									} else {
+										et.Update(prefix.Value, suffix, '-')
+									}
+								} else { // Иначе спрашиваем
+									// Проверяем, существует ли уже такое слово в карте
+									if _, exists := wordsToAsk[word]; !exists {
+										// Если слова нет, создаем новую запись с пустым списком пар
+										wordsToAsk[word] = PrefixAndSuffixForWord{
+											Pairs: make([]Pair, 0),
+										}
+									}
+									prefixSuffix := wordsToAsk[word]
+									// Добавляем текущие префикс и суффикс в список пар для данного слова
+									prefixSuffix.Pairs = append(wordsToAsk[word].Pairs, Pair{
+										First:  prefix.Value,
+										Second: suffix,
+									})
+									wordsToAsk[word] = prefixSuffix
+								}
+							}
+						}
+					}
+
+					et.AskForWordBatch(wordsToAsk)
+					wordsToAsk = make(map[string]PrefixAndSuffixForWord)
+				} else {
+					inconsistency = false
+				}
+			}
 
 			// отправляем таблицу MAT
 			response, responseType := et.AskForTable()

@@ -224,7 +224,7 @@ func (et *EquivalenceTable) AskForTable() (string, string) {
 			return "ERROR", "ERROR"
 		}
 
-		// log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
+		log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
 
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
 		if err != nil {
@@ -266,22 +266,31 @@ func (et *EquivalenceTable) AskForTable() (string, string) {
 }
 
 // SetModeForMAT - выбор одного из режимов MAT: easy, medium, hard
-func SetModeForMAT(mode string) bool {
+func SetModeForMAT(mode string) (int, int) {
 	url := fmt.Sprintf("http://%s:%s/generate", server, port)
 	requestBody, err := json.Marshal(map[string]string{
 		"mode": mode,
 	})
 	if err != nil {
 		fmt.Errorf("Ошибка при формировании тела запроса: %v\n", err)
-		return false
 	}
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		fmt.Errorf("Ошибка при отправке запроса: %v\n", err)
-		return false
 	}
 	defer resp.Body.Close()
 
-	return true
+	type GenerateResponse struct {
+		MaxLexemeSize     int `json:"maxLexemeSize"`
+		MaxBracketNesting int `json:"maxBracketNesting"`
+	}
+	var response GenerateResponse
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		fmt.Errorf("Ошибка при декодировании JSON: %v", err)
+	}
+
+	return response.MaxLexemeSize, response.MaxBracketNesting
 }
