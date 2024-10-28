@@ -81,7 +81,7 @@ func (et *EquivalenceTable) AskForWord(word string) bool {
 }
 
 // AskForWordBatch - Спрашивает, является ли каждое слово в wordsToAsk словом языка
-func (et *EquivalenceTable) AskForWordBatch(wordsToAsk map[string]PrefixAndSuffixForWord) {
+func (et *EquivalenceTable) AskForWordBatch(wordsToAsk map[string]PrefixAndSuffixForWord) []bool {
 	url := fmt.Sprintf("http://%s:%s/check-word-batch", server, port)
 
 	// Собираем список слов для отправки на сервер
@@ -102,14 +102,12 @@ func (et *EquivalenceTable) AskForWordBatch(wordsToAsk map[string]PrefixAndSuffi
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		fmt.Errorf("Ошибка при формировании тела запроса: %v", err)
-		return
 	}
 
 	// Отправляем POST запрос на сервер
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		fmt.Errorf("Ошибка при отправке запроса: %v", err)
-		return
 	}
 	defer resp.Body.Close()
 
@@ -121,13 +119,11 @@ func (et *EquivalenceTable) AskForWordBatch(wordsToAsk map[string]PrefixAndSuffi
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	if err != nil {
 		fmt.Errorf("Ошибка при декодировании JSON: %v", err)
-		return
 	}
 
 	// Проверка на количество слов и полученных результатов
 	if len(response.Bools) != len(words) {
 		fmt.Errorf("Некорректное количество ответов: ожидалось %d, получено %d", len(words), len(response.Bools))
-		return
 	}
 
 	// Обрабатываем каждый ответ
@@ -146,6 +142,7 @@ func (et *EquivalenceTable) AskForWordBatch(wordsToAsk map[string]PrefixAndSuffi
 			}
 		}
 	}
+	return response.Bools
 }
 
 // AskForTable - Спрашивает, является ли данная таблица искомым автоматом
@@ -224,7 +221,7 @@ func (et *EquivalenceTable) AskForTable() (string, string) {
 			return "ERROR", "ERROR"
 		}
 
-		log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
+		// log.Printf("Отправка POST запроса на URL: %s с телом: %s", url, string(requestBody))
 
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
 		if err != nil {

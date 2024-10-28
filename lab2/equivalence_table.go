@@ -60,6 +60,9 @@ func (et *EquivalenceTable) AddWord(word string, belonging bool) bool {
 	_, exists := et.Words[word]
 	if !exists {
 		et.Words[word] = belonging
+		if belonging {
+			counterTrueWords++
+		}
 		return true
 	}
 	return false

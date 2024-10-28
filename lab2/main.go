@@ -8,8 +8,11 @@ import (
 )
 
 var learnerMode, server, port string
+var counterTrueWords int
 
 func main() {
+	counterTrueWords = 0
+	heuristicAdded := false
 	config, err := LoadConfig()
 	if err != nil {
 		fmt.Println(err)
@@ -21,6 +24,7 @@ func main() {
 	server = config.ServerAddr
 	port = config.ServerPort
 	matMode := config.MatMode
+	eolAlphabet := ""
 
 	maxLexemeSize, _ := SetModeForMAT(matMode)
 	log.Printf("Максимальный размер лексеммы: %d", maxLexemeSize)
@@ -37,31 +41,7 @@ func main() {
 	suffixes := map[string]string{epsilon: epsilon}
 
 	et := NewEquivalenceTable(prefixes, suffixes)
-
-	eol := ""
-
-	// Генерация всех возможных строк для eol
-	possibleStrings := generateStrings(alphabet, maxLexemeSize)
-
-	for _, str := range possibleStrings {
-		if et.AskForEol(str) {
-			doubledStr := str + str + str + str + str + str + str
-			if et.AskForEol(doubledStr) {
-				eol = str
-				break
-			}
-		}
-	}
-	log.Printf("eol: %s", eol)
-
-	if eol != "" {
-		eolPrefix := Prefix{
-			Value:  eol,
-			IsMain: true,
-		}
-		et.AddPrefix(eolPrefix)
-		et.AddSuffix(eol)
-	}
+	useEol := true
 
 	// Пока таблица не угадана
 	for !IsDone {
@@ -118,7 +98,7 @@ func main() {
 		for _, oldPrefix := range et.Prefixes {
 			// Для каждого символа алфавита
 			for _, letter := range alphabet {
-				if strings.Contains(eol, string(letter)) {
+				if strings.Contains(eolAlphabet, string(letter)) && !useEol {
 					continue
 				}
 				// Создаем новые префиксы на основе главных префиксов
@@ -247,17 +227,93 @@ func main() {
 				IsDone = true
 			} else {
 				if responseType == "true" {
+					// fmt.Printf("Контрпример лернера: %s\n", response)
 					et.Words[response] = true
 				} else {
+					// fmt.Printf("Контрпример мата: %s\n", response)
+
 					et.Words[response] = false
 				}
 				for i := 0; i < len(response); i++ {
 					et.AddSuffix(response[i:])
 				}
+				_, removedNumber := RemoveChars(eolAlphabet, response)
+				if removedNumber > 0 {
+					// fmt.Println("Используем eol")
+					useEol = true
+				} else {
+					// fmt.Println("Не используем eol")
+					useEol = false
+				}
+				//if heuristicAdded {
+				//	fmt.Printf("Добавил контпример в префиксы: %s\n", response)
+				//	prefix := Prefix{
+				//		Value:  response,
+				//		IsMain: true,
+				//	}
+				//	et.AddPrefix(prefix)
+				//}
 			}
 		}
+		// fmt.Printf("Количество угаданных слов: %d\n", counterTrueWords)
+
+		counterEolAlphabets := 0
+		if counterTrueWords > 5000 && !heuristicAdded {
+			heuristicAdded = true
+			OriginalWordsToAsk := make(map[string]PrefixAndSuffixForWord)
+			for word := range et.Words {
+				if et.Words[word] {
+					OriginalWordsToAsk[word] = PrefixAndSuffixForWord{}
+				}
+			}
+			eolFindFlag := false
+			for length := len(alphabet) - 4; length > 0; length-- {
+				if eolFindFlag {
+					break
+				}
+				combinations := generateCombinations(alphabet, length)
+				for _, subAlphabet := range combinations {
+					NewWordsToAsk := make(map[string]PrefixAndSuffixForWord)
+					// fmt.Printf("Проверка для подалфавита: %s\n", subAlphabet)
+					emptyWord := false
+					for word := range OriginalWordsToAsk {
+						NewWord, _ := RemoveChars(subAlphabet, word)
+						if NewWord == "" {
+							emptyWord = true
+							break
+						}
+						NewWordsToAsk[NewWord] = PrefixAndSuffixForWord{}
+					}
+					if !emptyWord {
+						responseList := et.AskForWordBatch(NewWordsToAsk)
+						// countingOfFalse := 0
+						responseWithFalse := false
+						for _, response := range responseList {
+							if !response {
+								responseWithFalse = true
+							}
+						}
+						// fmt.Printf("Число ошибок: %d\n", countingOfFalse)
+						if !responseWithFalse {
+							if eolAlphabet != "" {
+								eolAlphabet = Intersection(eolAlphabet, subAlphabet)
+							} else {
+								eolAlphabet = subAlphabet
+							}
+
+							fmt.Printf("Алфавит для eol: %s\n", eolAlphabet)
+							counterEolAlphabets++
+							eolFindFlag = true
+							//break
+						}
+					}
+				}
+			}
+			fmt.Printf("Количество найденных алфавитов: %d\n", counterEolAlphabets)
+		}
+
 	}
-	et.PrintTable()
+	// et.PrintTable()
 	// Засекаем время
 	finish := time.Since(start)
 	fmt.Printf("Время выполнения программы: %s\n", finish)
