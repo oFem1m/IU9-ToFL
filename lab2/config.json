@@ -4,5 +4,5 @@
   "learner_mode": "automatic",
   "server_address": "localhost",
   "server_port": "8080",
-  "mat_mode": "normal"
+  "mat_mode": "easy"
 }
