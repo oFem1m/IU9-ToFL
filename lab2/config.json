@@ -1,0 +1,8 @@
+{
+  "alphabet": "0123456789",
+  "epsilon": "ε",
+  "learner_mode": "automatic",
+  "server_address": "localhost",
+  "server_port": "8080",
+  "mat_mode": "easy"
+}

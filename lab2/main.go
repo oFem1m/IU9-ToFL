@@ -2,55 +2,50 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
 
-var manualMode = true
-var server, port string
+var learnerMode, server, port string
+var counterTrueWords int
 
 func main() {
-	var alphabet string
-
-	fmt.Print("Введите символы алфавита одной строкой: ")
-	fmt.Scanln(&alphabet)
-	var response string
-	epsilon := ""
-	fmt.Print("Использовать ε в роли пустой строки? +/-: ")
-	fmt.Scanln(&response)
-	if response == "+" {
-		epsilon = "ε"
+	counterTrueWords = 0
+	heuristicAdded := false
+	config, err := LoadConfig()
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
+	alphabet := config.Alphabet
+	epsilon := config.Epsilon
+	learnerMode = config.LearnerMode
+	server = config.ServerAddr
+	port = config.ServerPort
+	matMode := config.MatMode
+	eolAlphabet := ""
 
-	fmt.Print("Использовать Лернер в ручном режиме? (Без программы MAT) +/-: ")
-	fmt.Scanln(&response)
-	if response == "-" {
-		manualMode = false
-		fmt.Print("Введите ip-адрес и порт сервера MAT в формате <адрес>:<порт> ")
-		fmt.Scanln(&response)
-		// Разделяем строку на адрес и порт
-		parts := strings.Split(response, ":")
-		server = parts[0]
-		port = parts[1]
-		fmt.Print("Введите режим работы MAT (easy/normal/hard): ")
-		fmt.Scanln(&response)
-		SetModeForMAT(response)
-	}
+	maxLexemeSize, _ := SetModeForMAT(matMode)
+	log.Printf("Максимальный размер лексеммы: %d", maxLexemeSize)
 
 	// Время старта
 	start := time.Now()
 
 	IsDone := false
 
-	prefixes := []Prefix{
-		{Value: epsilon, IsMain: true},
+	// Инициализируем таблицу с картами префиксов и суффиксов
+	prefixes := map[string]Prefix{
+		epsilon: {Value: epsilon, IsMain: true},
 	}
-	suffixes := []string{epsilon}
+	suffixes := map[string]string{epsilon: epsilon}
 
 	et := NewEquivalenceTable(prefixes, suffixes)
+	useEol := true
 
 	// Пока таблица не угадана
 	for !IsDone {
+		wordsToAsk := make(map[string]PrefixAndSuffixForWord)
 		// Заполняем пустые значения таблицы
 		for _, prefix := range et.Prefixes {
 			for _, suffix := range et.Suffixes {
@@ -79,14 +74,22 @@ func main() {
 						} else {
 							et.Update(prefix.Value, suffix, '-')
 						}
-					} else { // Иначе спрашиваем
-						if et.AskForWord(word) {
-							if et.Words[word] {
-								et.Update(prefix.Value, suffix, '+')
-							} else {
-								et.Update(prefix.Value, suffix, '-')
+					} else {
+						// Иначе сохраняем для вопроса
+						// Проверяем, существует ли уже такое слово в карте
+						if _, exists := wordsToAsk[word]; !exists {
+							// Если слова нет, создаем новую запись с пустым списком пар
+							wordsToAsk[word] = PrefixAndSuffixForWord{
+								Pairs: make([]Pair, 0),
 							}
 						}
+						prefixSuffix := wordsToAsk[word]
+						// Добавляем текущие префикс и суффикс в список пар для данного слова
+						prefixSuffix.Pairs = append(wordsToAsk[word].Pairs, Pair{
+							First:  prefix.Value,
+							Second: suffix,
+						})
+						wordsToAsk[word] = prefixSuffix
 					}
 				}
 			}
@@ -95,6 +98,9 @@ func main() {
 		for _, oldPrefix := range et.Prefixes {
 			// Для каждого символа алфавита
 			for _, letter := range alphabet {
+				if strings.Contains(eolAlphabet, string(letter)) && !useEol {
+					continue
+				}
 				// Создаем новые префиксы на основе главных префиксов
 				if oldPrefix.IsMain {
 					currentPrefix := oldPrefix.Value
@@ -124,29 +130,41 @@ func main() {
 								} else {
 									et.Update(prefix.Value, suffix, '-')
 								}
-							} else { // Иначе спрашиваем
-								if et.AskForWord(word) {
-									if et.Words[word] {
-										et.Update(prefix.Value, suffix, '+')
-									} else {
-										et.Update(prefix.Value, suffix, '-')
+							} else {
+								// Проверяем, существует ли уже такое слово в карте
+								if _, exists := wordsToAsk[word]; !exists {
+									// Если слова нет, создаем новую запись с пустым списком пар
+									wordsToAsk[word] = PrefixAndSuffixForWord{
+										Pairs: make([]Pair, 0),
 									}
 								}
+								prefixSuffix := wordsToAsk[word]
+								// Добавляем текущие префикс и суффикс в список пар для данного слова
+								prefixSuffix.Pairs = append(wordsToAsk[word].Pairs, Pair{
+									First:  prefix.Value,
+									Second: suffix,
+								})
+								wordsToAsk[word] = prefixSuffix
 							}
 						}
 					}
 				}
 			}
 		}
+		et.AskForWordBatch(wordsToAsk)
 
+		//wordsToAsk = make([]string, 0)
+		wordsToAsk = make(map[string]PrefixAndSuffixForWord)
 		// Проверяем таблицу на полноту и приводим к полному виду
 		et.CompleteTable()
 
 		// Проверка, являются ли все префиксы главными
 		if !et.AreAllPrefixesMain() {
+
 			inconsistency := true
 			for inconsistency {
 				if et.InconsistencyTable(alphabet) {
+					fmt.Println("inconsistency!")
 					// Заполняем пустые значения таблицы
 					for _, prefix := range et.Prefixes {
 						for _, suffix := range et.Suffixes {
@@ -176,35 +194,126 @@ func main() {
 										et.Update(prefix.Value, suffix, '-')
 									}
 								} else { // Иначе спрашиваем
-									if et.AskForWord(word) {
-										if et.Words[word] {
-											et.Update(prefix.Value, suffix, '+')
-										} else {
-											et.Update(prefix.Value, suffix, '-')
+									// Проверяем, существует ли уже такое слово в карте
+									if _, exists := wordsToAsk[word]; !exists {
+										// Если слова нет, создаем новую запись с пустым списком пар
+										wordsToAsk[word] = PrefixAndSuffixForWord{
+											Pairs: make([]Pair, 0),
 										}
 									}
+									prefixSuffix := wordsToAsk[word]
+									// Добавляем текущие префикс и суффикс в список пар для данного слова
+									prefixSuffix.Pairs = append(wordsToAsk[word].Pairs, Pair{
+										First:  prefix.Value,
+										Second: suffix,
+									})
+									wordsToAsk[word] = prefixSuffix
 								}
 							}
 						}
 					}
+
+					et.AskForWordBatch(wordsToAsk)
+					wordsToAsk = make(map[string]PrefixAndSuffixForWord)
 				} else {
 					inconsistency = false
 				}
 			}
+
 			// отправляем таблицу MAT
-			response := et.AskForTable()
-			// Если угадали, то конец меняем флаг, иначе - добавляем новые суффиксы
+			response, responseType := et.AskForTable()
+			// Если угадали, то конец, меняем флаг, иначе - добавляем новые суффиксы
 			if response == "true" {
 				IsDone = true
 			} else {
-				et.Words[response] = true
+				if responseType == "true" {
+					// fmt.Printf("Контрпример лернера: %s\n", response)
+					et.Words[response] = true
+				} else {
+					// fmt.Printf("Контрпример мата: %s\n", response)
+
+					et.Words[response] = false
+				}
 				for i := 0; i < len(response); i++ {
 					et.AddSuffix(response[i:])
 				}
+				_, removedNumber := RemoveChars(eolAlphabet, response)
+				if removedNumber > 0 {
+					// fmt.Println("Используем eol")
+					useEol = true
+				} else {
+					// fmt.Println("Не используем eol")
+					useEol = false
+				}
+				//if heuristicAdded {
+				//	fmt.Printf("Добавил контпример в префиксы: %s\n", response)
+				//	prefix := Prefix{
+				//		Value:  response,
+				//		IsMain: true,
+				//	}
+				//	et.AddPrefix(prefix)
+				//}
 			}
 		}
+		// fmt.Printf("Количество угаданных слов: %d\n", counterTrueWords)
+
+		counterEolAlphabets := 0
+		if counterTrueWords > 5000 && !heuristicAdded {
+			heuristicAdded = true
+			OriginalWordsToAsk := make(map[string]PrefixAndSuffixForWord)
+			for word := range et.Words {
+				if et.Words[word] {
+					OriginalWordsToAsk[word] = PrefixAndSuffixForWord{}
+				}
+			}
+			eolFindFlag := false
+			for length := len(alphabet) - 4; length > 0; length-- {
+				if eolFindFlag {
+					break
+				}
+				combinations := generateCombinations(alphabet, length)
+				for _, subAlphabet := range combinations {
+					NewWordsToAsk := make(map[string]PrefixAndSuffixForWord)
+					// fmt.Printf("Проверка для подалфавита: %s\n", subAlphabet)
+					emptyWord := false
+					for word := range OriginalWordsToAsk {
+						NewWord, _ := RemoveChars(subAlphabet, word)
+						if NewWord == "" {
+							emptyWord = true
+							break
+						}
+						NewWordsToAsk[NewWord] = PrefixAndSuffixForWord{}
+					}
+					if !emptyWord {
+						responseList := et.AskForWordBatch(NewWordsToAsk)
+						// countingOfFalse := 0
+						responseWithFalse := false
+						for _, response := range responseList {
+							if !response {
+								responseWithFalse = true
+							}
+						}
+						// fmt.Printf("Число ошибок: %d\n", countingOfFalse)
+						if !responseWithFalse {
+							if eolAlphabet != "" {
+								eolAlphabet = Intersection(eolAlphabet, subAlphabet)
+							} else {
+								eolAlphabet = subAlphabet
+							}
+
+							fmt.Printf("Алфавит для eol: %s\n", eolAlphabet)
+							counterEolAlphabets++
+							eolFindFlag = true
+							//break
+						}
+					}
+				}
+			}
+			fmt.Printf("Количество найденных алфавитов: %d\n", counterEolAlphabets)
+		}
+
 	}
-	et.PrintTable()
+	// et.PrintTable()
 	// Засекаем время
 	finish := time.Since(start)
 	fmt.Printf("Время выполнения программы: %s\n", finish)
