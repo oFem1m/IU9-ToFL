@@ -424,8 +424,9 @@ def print_step(stack, pos, lookahead, action, new_stack):
 if __name__ == "__main__":
     # Грамматика:
     grammar_rules = [
-        "S -> a S b",
-        "S -> c"
+        "S -> S S a",
+        "S -> S b S",
+        "S -> a",
     ]
 
     # 1. Создаем грамматику
@@ -448,12 +449,12 @@ if __name__ == "__main__":
     action, goto_table = build_parsing_table(states, transitions, grammar)
     print_parsing_table(action, goto_table, grammar)
 
-    parser = PDA(action, goto_table, grammar)
     # 5. Парсим по таблице:
-    tokens = list("aacbb")  # входные токены
+    parser = PDA(action, goto_table, grammar)
+    tokens = list("aabaa")  # входные токены
     parses = parser.parse_all(tokens)
 
     # Выведем результаты
     print("Возможные пути парсинга:")
-    for p in parses:
-        print(p)
+    for path in parses:
+        print(path)
