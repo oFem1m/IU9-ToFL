@@ -206,12 +206,14 @@ def build_lr0_automaton(grammar):
                 g = goto(st, sym, grammar)
                 if g and g not in states:
                     states.append(g)
-                    transitions.append((i, sym, len(states) - 1))
+                    if (i, sym, len(states) -1 ) not in transitions:
+                        transitions.append((i, sym, len(states) - 1))
                     new_states_found = True
                 elif g:
                     # состояние уже известно
                     j = states.index(g)
-                    transitions.append((i, sym, j))
+                    if (i, sym, j) not in transitions:
+                        transitions.append((i, sym, j))
         if not new_states_found:
             break
 
@@ -263,6 +265,28 @@ def build_parsing_table(states, transitions, grammar):
             goto_table[fs][sym].append(ts)
 
     return action, goto_table
+
+def print_parsing_table(action, goto_table, grammar):
+    """
+    Выводит управляющую таблицу в удобном для понимания виде.
+    """
+    # Выводим заголовок таблицы
+    print("State\t| Action\t\t\t\t\t| Goto")
+    print("-" * 80)
+
+    # Получаем все состояния
+    states = set(action.keys()).union(set(goto_table.keys()))
+    states = sorted(states)
+
+    # Получаем все терминалы и нетерминалы
+    terminals = sorted(grammar.terminals) + ['$']
+    nonterminals = sorted(grammar.nonterminals)
+
+    # Выводим строки для каждого состояния
+    for state in states:
+        action_str = "\t".join([f"{term}: {', '.join([f'{act[0]} {act[1]}' for act in action[state][term]])}" for term in terminals if action[state][term]])
+        goto_str = "\t".join([f"{nt}: {', '.join(map(str, goto_table[state][nt]))}" for nt in nonterminals if goto_table[state][nt]])
+        print(f"{state}\t\t| {action_str}\t| {goto_str}")
 
 
 class PDA:
@@ -388,10 +412,15 @@ if __name__ == "__main__":
     # Пример грамматики:
     # S -> A A
     # A -> a A | b
+    # grammar_rules = [
+    #     "S -> A A",
+    #     "A -> a A",
+    #     "A -> b"
+    # ]
+
     grammar_rules = [
-        "S -> A A",
-        "A -> a A",
-        "A -> b"
+        "S -> a S b",
+        "S -> c"
     ]
 
     # 1. Создаем грамматику
@@ -402,10 +431,18 @@ if __name__ == "__main__":
     grammar.augment_grammar()
 
     # 4. Строим LR(0)-автомат
+    print("LR(0)-автомат:")
     states, transitions = build_lr0_automaton(grammar)
+    print("Состояния:")
+    for state in states:
+        print(state)
+    print("Переходы:")
+    for transition in transitions:
+        print(transition)
 
     # 5. Строим парсинг-таблицу
     action, goto_table = build_parsing_table(states, transitions, grammar)
+    print_parsing_table(action, goto_table, grammar)
 
     # 6. Создаем PDA
     pda = PDA(action, goto_table, grammar)
@@ -413,10 +450,10 @@ if __name__ == "__main__":
     # 7. Парсим вход:
     # К примеру, строка: a a b b соответствует цепочке A A => (a A)(b)
     # Попробуем: a b b (по сути S->A A->aA A->b| A->b)
-    tokens = list("abb")  # входные токены
+    tokens = list("aacbb")  # входные токены
     parses = pda.parse_all(tokens)
 
     # Выведем все результаты
-    print("Possible parse trees:")
+    print("Возможные пути парсинга:")
     for p in parses:
         print(p)
