@@ -224,10 +224,9 @@ def build_lr0_automaton(grammar):
 def build_parsing_table(states, transitions, grammar):
     """
     Строим управляющую таблицу (action/goto) для LR(0).
-    Если есть конфликты - таблица будет недетерминированной.
-    Представим таблицу в виде:
-      action[state][terminal] = [('shift', next_state), ('reduce', rule_i), ...]
-    Аналогично для goto.
+    Возвращаем:
+      action[state][terminal] = список действий [('shift', s) или ('reduce', rule_i) или ('accept', None)]
+      goto_table[state][nonterminal] = список состояний
     """
     # Создадим индекс правил для reduce
     rule_index = {}
@@ -422,15 +421,248 @@ def print_step(stack, pos, lookahead, action, new_stack):
     print("-" * 40)
 
 
+class State:
+    def __init__(self, name):
+        self.name = name
+    def __repr__(self):
+        return f"State({self.name})"
+
+class Transition:
+    def __init__(self, current_state, input_symbol, stack_top, next_state, stack_action):
+        # input_symbol: либо терминал, либо 'ε'
+        # stack_top: ожидаемый символ стека (состояние)
+        # stack_action: строка вида:
+        #   'push:X' - положить состояние X
+        #   'popN:X' - снять N состояний и положить X
+        #   'pop' - снять одно состояние
+        #   'ε' - ничего не делать
+        self.current_state = current_state
+        self.input_symbol = input_symbol
+        self.stack_top = stack_top
+        self.next_state = next_state
+        self.stack_action = stack_action
+
+    def __repr__(self):
+        return f"Transition({self.current_state.name}, {self.input_symbol}, {self.stack_top}, {self.next_state.name}, {self.stack_action})"
+
+
+class PushdownAutomaton:
+    def __init__(self, states, alphabet, stack_alphabet, transitions, start_state, accept_states):
+        self.states = states
+        self.alphabet = alphabet
+        self.stack_alphabet = stack_alphabet
+        self.transitions = transitions
+        self.start_state = start_state
+        self.accept_states = accept_states
+
+
+def build_pda_from_lr(action, goto_table, grammar):
+    """
+    Строим PDA по таблицам action/goto LR-анализатора.
+    Идея:
+    - Состояния PDA соответствуют LR-состояниям.
+    - Стековые символы - тоже состояния (мы храним в стеке номера состояний).
+    - Начальный стек содержит начальное состояние.
+    - Для shift:
+        читаем терминал input_symbol
+        stack_action = "push:next_state"
+        Переход: (current_state, input_symbol, stack_top=<current_state> -> next_state, stack_action)
+    - Для reduce:
+        нужно снять |body| символов стека, затем перейти в состояние goto.
+        Переход по ε: stack_action='popN:next_state' где next_state - состояние после goto
+    - Для accept:
+        Переход по ε из текущего состояния в accept state без изменений.
+        Или можно считать, что accept state - это состояние, у которого нет переходов дальше, просто принимаем.
+
+    В случае конфликтов (несколько вариантов action) - добавляем все переходы.
+    """
+
+    # Определяем множество состояний
+    # Состояния = числа от 0 до len(action)
+    # Создадим объекты State
+    states = [State(f"q{i}") for i in range(len(action))]
+    # Алфавит входа - terminals + '$'
+    alphabet = set(grammar.terminals) | {'$'}
+    # stack_alphabet = множество состояний (названия?)
+    # В данном случае стек символы = те же состояния.
+    stack_alphabet = set(s.name for s in states)
+
+    transitions = []
+    accept_states = set()
+
+    # Принимающее состояние можно создать дополнительное. Но в LR-парсере
+    # accept - это действие в одном из состояний при входном символе '$'.
+    # Можно просто считать, что состояние, в котором есть accept-действие,
+    # переходит в специальное состояние-допустимости.
+    # Создадим отдельное состояние принятия:
+    accept_state = State("q_accept")
+    states.append(accept_state)
+    accept_states.add(accept_state)
+
+    # Начальное состояние PDA будет соответствовать начальному LR-состоянию (обычно это 0).
+    start_state = states[0]
+
+    # Построим переходы
+    # action[state][term] и goto_table[state][NT]
+    # Для shift: (q_s, term, stack_top="q_s") -> q_ts, stack_action="push:q_ts"
+    # Для reduce: нужно взять правило A->α и сделать pop(len(α)) затем push состояние goto[state_of_pop][A].
+    #   Это ε-переход, stack_action="popN:q_goto"
+    # Для accept: ε-переход в q_accept.
+
+    # Для работы с rules создадим список для быстрого доступа:
+    rule_list = grammar.rules
+
+    for s_i in range(len(states)-1): # не берем q_accept
+        # shift/reduce/accept actions
+        for term, acts in action[s_i].items():
+            for act_type, val in acts:
+                if act_type == 'shift':
+                    # shift в состояние val
+                    next_st = states[val]
+                    # Для shift: читаем symbol=term, stack_top=states[s_i], stack_action='push:q_val'
+                    transitions.append(Transition(
+                        current_state=states[s_i],
+                        input_symbol=term,
+                        stack_top=states[s_i].name,
+                        next_state=next_st,
+                        stack_action=f"push:{next_st.name}"
+                    ))
+                elif act_type == 'reduce':
+                    # reduce по правилу val
+                    (A,B) = rule_list[val]
+                    # длина B - сколько pop
+                    # после попа goto от состояния, на котором окажемся.
+                    pop_len = len(B)
+
+                    for s_j in range(len(states)-1):
+                        # Для каждого состояния проверяем goto_table
+                        if A in goto_table[s_j] and len(goto_table[s_j][A])>0:
+                            for q_goto in goto_table[s_j][A]:
+                                q_goto_st = states[q_goto]
+                                transitions.append(Transition(
+                                    current_state=states[s_i],
+                                    input_symbol='ε',
+                                    stack_top=states[s_i].name,
+                                    next_state=q_goto_st,
+                                    stack_action=f"popN:{pop_len}:{q_goto_st.name}"
+                                ))
+
+                elif act_type == 'accept':
+                    # accept: переход в q_accept
+                    transitions.append(Transition(
+                        current_state=states[s_i],
+                        input_symbol='ε',
+                        stack_top=states[s_i].name,
+                        next_state=accept_state,
+                        stack_action='ε'
+                    ))
+
+        # goto действия отразим как epsilon переходы?
+        # В LR парсере goto делается после reduce, уже учтено выше при reduce.
+
+    pda = PushdownAutomaton(states, alphabet, stack_alphabet, transitions, start_state, accept_states)
+    return pda
+
+def parse_with_pda(pda, input_tokens):
+    """
+    Недетерминированный разбор по PDA:
+    - Стек изначально содержит start_state.name (как символ стека).
+    - Начинаем из start_state.
+    - Для каждого шага:
+      смотрим на переходы:
+        - Если input_symbol совпадает с текущим токеном или 'ε', и stack_top совпадает,
+          то можем сделать переход.
+        - По stack_action корректируем стек.
+      Если несколько переходов - ветвимся (backtracking).
+
+    Возвращаем True, если хотя бы один путь ведет к состоянию принятия.
+    """
+    input_tokens = input_tokens + ['$']
+    initial_config = (pda.start_state, tuple([pda.start_state.name]), 0)  # (current_state, stack, pos)
+    # очередь для бэктрекинга
+    queue = deque([initial_config])
+    visited = set() # чтобы ограничить бесконечные циклы
+
+    while queue:
+        current_state, stack, pos = queue.pop()
+        if current_state in pda.accept_states and pos == len(input_tokens):
+            # достигли акцепта
+            return True
+
+        # Находим подходящие переходы
+        current_input = input_tokens[pos] if pos < len(input_tokens) else None
+
+        # На вершине стека:
+        top = stack[-1] if stack else None
+
+        # Подбираем переходы
+        # переход подходит, если:
+        #   (transition.input_symbol == current_input or 'ε')
+        #   (transition.stack_top == top or 'ε')
+        for t in pda.transitions:
+            if t.current_state == current_state:
+                # Проверяем символ входа
+                if t.input_symbol == 'ε':
+                    # нет потребности читать вход
+                    can_read = True
+                else:
+                    can_read = (current_input == t.input_symbol)
+
+                # Проверяем стек
+                if t.stack_top == top or t.stack_top == 'ε':
+                    if can_read:
+                        # Применяем переход
+                        new_stack = list(stack)
+                        # stack_action
+                        # варианты:
+                        # 'push:X'
+                        # 'pop'
+                        # 'popN:N:X'
+                        # 'ε'
+                        sa = t.stack_action
+                        if sa.startswith('push:'):
+                            sym = sa.split(':',1)[1]
+                            new_stack.append(sym)
+                        elif sa == 'pop':
+                            if new_stack:
+                                new_stack.pop()
+                            else:
+                                continue
+                        elif sa.startswith('popN:'):
+                            # popN:count:state
+                            parts = sa.split(':')
+                            count = int(parts[1])
+                            if len(new_stack) < count:
+                                continue
+                            # pop count times
+                            for _ in range(count):
+                                new_stack.pop()
+                            # затем push new state
+                            if len(parts) > 2:
+                                new_sym = parts[2]
+                                new_stack.append(new_sym)
+                        elif sa == 'ε':
+                            # ничего не делаем
+                            pass
+
+                        new_stack = tuple(new_stack)
+                        new_pos = pos
+                        if t.input_symbol != 'ε' and t.input_symbol is not None:
+                            new_pos = pos + 1
+
+                        new_config = (t.next_state, new_stack, new_pos)
+                        if new_config not in visited:
+                            visited.add(new_config)
+                            queue.append(new_config)
+
+    return False
+
 
 if __name__ == "__main__":
     # Грамматика:
     grammar_rules = [
         "S -> a S b",
-        "S -> a A",
-        "S -> c",
-        "A -> a A",
-        "A -> c c",
+        "S -> c"
     ]
 
     # 1. Создаем грамматику
@@ -454,14 +686,18 @@ if __name__ == "__main__":
     action, goto_table = build_parsing_table(states, transitions, grammar)
     print_parsing_table(action, goto_table, grammar)
 
-    # 6. Создаем PDA
-    pda = PDA(action, goto_table, grammar)
-
-    # 7. Парсим:
+    parser = PDA(action, goto_table, grammar)
+    # 7. Парсим по таблице:
     tokens = list("aacbb")  # входные токены
-    parses = pda.parse_all(tokens)
+    parses = parser.parse_all(tokens)
 
     # Выведем все результаты
     print("Возможные пути парсинга:")
     for p in parses:
         print(p)
+
+    # Попробуем распарсить строку по PDA
+    pda = build_pda_from_lr(action, goto_table, grammar)
+    tokens = list("aacbb")
+    res = parse_with_pda(pda, tokens)
+    print("Результат парсинга", res)
