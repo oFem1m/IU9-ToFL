@@ -1,0 +1,24 @@
+    grammar_rules = [
+        "S -> A A",
+        "A -> a A",
+        "A -> b"
+    ]
+====
+    grammar_rules = [
+        "S -> a S b",
+        "S -> c"
+    ]
+====
+    grammar_rules = [
+        "S -> S S a",
+        "S -> S b S",
+        "S -> a",
+    ]
+====
+    grammar_rules = [
+        "S -> a S b",
+        "S -> a A",
+        "S -> c",
+        "A -> a A",
+        "A -> c c",
+    ]

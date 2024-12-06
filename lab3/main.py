@@ -361,6 +361,7 @@ class PDA:
                     new_stack = stack[:]
                     new_stack.append((next_state, (lookahead, [])))  # терминал как (symbol, [])
                     queue.append((new_stack, pos + 1))
+                    print_step(stack, pos, lookahead, act, new_stack)
 
                 elif atype == 'reduce':
                     rule_i = act[1]
@@ -390,6 +391,7 @@ class PDA:
                             new_stack2 = new_stack[:]
                             new_stack2.append((g_st, new_node))
                             queue.append((new_stack2, pos))
+                            print_step(stack, pos, lookahead, act, new_stack2)
                     else:
                         # нет перехода, ошибка
                         continue
@@ -404,29 +406,37 @@ class PDA:
                         # Возможно нужна проверка, что это точно стартовое правило
                         if stack[-1][1] is not None:
                             results.append(stack[-1][1])
+                    print_step(stack, pos, lookahead, act, stack)
 
         return results
 
+def print_step(stack, pos, lookahead, action, new_stack):
+    """
+    Выводит информацию о шаге разбора.
+    """
+    print(f"Step: {pos}")
+    print(f"Stack: {stack}")
+    print(f"Lookahead: {lookahead}")
+    print(f"Action: {action}")
+    print(f"New Stack: {new_stack}")
+    print("-" * 40)
+
+
 
 if __name__ == "__main__":
-    # Пример грамматики:
-    # S -> A A
-    # A -> a A | b
-    # grammar_rules = [
-    #     "S -> A A",
-    #     "A -> a A",
-    #     "A -> b"
-    # ]
-
+    # Грамматика:
     grammar_rules = [
         "S -> a S b",
-        "S -> c"
+        "S -> a A",
+        "S -> c",
+        "A -> a A",
+        "A -> c c",
     ]
 
     # 1. Создаем грамматику
     grammar = Grammar(grammar_rules)
-    # 2. Удаление левой рекурсии (упрощенный)
-    grammar.remove_left_recursion()
+    # 2. Удаление левой рекурсии (упрощенно)
+    # grammar.remove_left_recursion()
     # 3. Добавление стартового символа
     grammar.augment_grammar()
 
@@ -447,9 +457,7 @@ if __name__ == "__main__":
     # 6. Создаем PDA
     pda = PDA(action, goto_table, grammar)
 
-    # 7. Парсим вход:
-    # К примеру, строка: a a b b соответствует цепочке A A => (a A)(b)
-    # Попробуем: a b b (по сути S->A A->aA A->b| A->b)
+    # 7. Парсим:
     tokens = list("aacbb")  # входные токены
     parses = pda.parse_all(tokens)
 
