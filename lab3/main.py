@@ -455,6 +455,33 @@ class PushdownAutomaton:
         self.start_state = start_state
         self.accept_states = accept_states
 
+    def display(self):
+        print("Pushdown Automaton:")
+        print("===================")
+
+        print("\nStates:")
+        for state in self.states:
+            print(f"  {state}")
+
+        print("\nAlphabet:")
+        for symbol in self.alphabet:
+            print(f"  {symbol}")
+
+        print("\nStack Alphabet:")
+        for symbol in self.stack_alphabet:
+            print(f"  {symbol}")
+
+        print("\nStart State:")
+        print(f"  {self.start_state}")
+
+        print("\nAccept States:")
+        for state in self.accept_states:
+            print(f"  {state}")
+
+        print("\nTransitions:")
+        for transition in self.transitions:
+            print(f"  {transition}")
+
 
 def build_pda_from_lr(action, goto_table, grammar):
     """
@@ -698,6 +725,6 @@ if __name__ == "__main__":
 
     # Попробуем распарсить строку по PDA
     pda = build_pda_from_lr(action, goto_table, grammar)
-    tokens = list("aacbb")
+    pda.display()
     res = parse_with_pda(pda, tokens)
     print("Результат парсинга", res)
