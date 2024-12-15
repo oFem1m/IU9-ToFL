@@ -295,7 +295,6 @@ class Parser:
             for i, branch in enumerate(node.branches):
                 branch_defs = self.check_references(branch, defined_groups)
                 all_defs.append(branch_defs)
-            # Раньше было пересечение, теперь используем объединение.
             union_defs = set()
             for d in all_defs:
                 union_defs.update(d)
@@ -306,7 +305,7 @@ class Parser:
 
     def check_no_cap_and_lookahead(self, node, inside_lookahead):
         """
-        Проверяем, что внутри lookahead нет захватывающих групп и нет других lookahead.
+        Проверяем, что внутри lookahead нет захватывающих групп и lookahead.
         """
         if isinstance(node, GroupNode) and inside_lookahead:
             raise RegexParserError("Внутри опережающей проверки не допускаются захватывающие группы")
@@ -433,8 +432,6 @@ class CFGBuilder:
             self.star_index += 1
             return name
         else:
-            # Для A, C, CHAR, LA используем те же счётчики
-            # или просто глобально уникальные имена
             # Для простоты: добавим общий счётчик
             name = f"{prefix}{self.noncap_index + self.star_index}"
             self.noncap_index += 1
