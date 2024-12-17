@@ -428,7 +428,7 @@ class CFGBuilder:
             if ref_id not in self.group_nonterm:
                 self.group_nonterm[ref_id] = f"G{ref_id}"
                 if ref_id not in self.groups_ast:
-                    raise RegexParserError(f"Группа {ref_id} не найдена для expr ref")
+                    raise RegexParserError(f"Ссылка на несуществующую группу {ref_id}")
                 # Строим правила для группы ref_id
                 sub_nt = self.node_to_cfg(self.groups_ast[ref_id], rules)
                 nt = self.group_nonterm[ref_id]
