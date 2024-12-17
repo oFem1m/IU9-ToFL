@@ -24,8 +24,7 @@ class Lexer:
 
     def tokenize(self):
         tokens = []
-        text = self.text
-        while self.pos < len(text):
+        while self.pos < len(self.text):
             ch = self.peek()
 
             if ch == '(':
@@ -161,7 +160,7 @@ class Parser:
         if self.current_token() is not None:
             # Если что-то осталось непрочитанное, синтаксическая ошибка
             raise RegexParserError("Лишние символы после корректного выражения")
-        # Теперь у нас есть AST, проверим корректность ссылок
+        # Проверяем синтаксическую корректность, но не будем запрещать forward refs
         self.check_references(node, defined_groups=set())
         return node
 
@@ -251,15 +250,14 @@ class Parser:
         # 1) ExprRefNode(ref_id): ref_id должна быть определена (ref_id in defined_groups)
         # 2) GroupNode: после неё добавить её номер
         # 3) LookaheadNode: внутри не может быть групп захвата, других lookahead
-
+        # PS:
+        # Не запрещаем forward references, рекурсия допустима
+        # Просто проверим отсутствия lookahead внутри lookahead или групп захвата в нём.
         if isinstance(node, CharNode):
             return defined_groups
 
         elif isinstance(node, ExprRefNode):
-            # (?N)
-            if node.ref_id not in defined_groups:
-                if node.ref_id not in defined_groups:
-                    raise RegexParserError(f"Ссылка на выражение (?{node.ref_id}) до определения группы {node.ref_id}")
+            # Не выдаём ошибку при forward ref
             return defined_groups
 
         elif isinstance(node, GroupNode):
@@ -284,7 +282,7 @@ class Parser:
 
         elif isinstance(node, ConcatNode):
             cur_defined = defined_groups
-            for i, child in enumerate(node.nodes):
+            for child in node.nodes:
                 cur_defined = self.check_references(child, cur_defined)
             return cur_defined
 
@@ -292,7 +290,7 @@ class Parser:
             # Изначально было пересечение, теперь делаем объединение,
             # чтобы ситуации вроде (a|(bb))(a|(?2)) были корректными.
             all_defs = []
-            for i, branch in enumerate(node.branches):
+            for branch in node.branches:
                 branch_defs = self.check_references(branch, defined_groups)
                 all_defs.append(branch_defs)
             union_defs = set()
@@ -359,11 +357,15 @@ class CFGBuilder:
             return nt
 
         elif isinstance(node, GroupNode):
-            # Если группа уже имеет нетерминал, используем его
-            if node.group_id not in self.group_nonterm:
-                self.group_nonterm[node.group_id] = f"G{node.group_id}"
-                self.node_to_cfg(node.node, rules, start_symbol=self.group_nonterm[node.group_id])
-            return self.group_nonterm[node.group_id]
+            nt = self.group_nonterm.get(node.group_id)
+            if nt is None:
+                nt = f"G{node.group_id}"
+                self.group_nonterm[node.group_id] = nt
+            # Строим внутреннее правило для содержимого группы
+            sub_nt = self.node_to_cfg(node.node, rules)
+            # G{group_id} -> sub_nt
+            rules.setdefault(nt, []).append([sub_nt])
+            return nt
 
         elif isinstance(node, NonCapGroupNode):
             # Генерируем новый нетерминал для незахватывающей группы
@@ -414,7 +416,11 @@ class CFGBuilder:
                 self.group_nonterm[ref_id] = f"G{ref_id}"
                 if ref_id not in self.groups_ast:
                     raise RegexParserError(f"Группа {ref_id} не найдена для expr ref")
-                self.node_to_cfg(self.groups_ast[ref_id], rules, start_symbol=self.group_nonterm[ref_id])
+                # Строим правила для группы ref_id
+                sub_nt = self.node_to_cfg(self.groups_ast[ref_id], rules)
+                nt = self.group_nonterm[ref_id]
+                # sub_nt уже построен выше:
+                rules.setdefault(nt, []).append([sub_nt])
             return self.group_nonterm[ref_id]
 
         else:
