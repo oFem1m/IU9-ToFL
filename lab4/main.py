@@ -462,19 +462,18 @@ def main():
     try:
         if text == "":
             raise RegexParserError("Пустая строка")
+        # Разбиваем на лексеммы
         lexer = Lexer(text)
         tokens = lexer.tokenize()
-        for token in tokens:
-            print(token)
-        print("=" * 60)
+
+        # Строим дерево
         parser = Parser(tokens)
         ast = parser.parse()
-        print(ast)
-        print("=" * 60)
+
         # Построим КС-грамматику
         builder = CFGBuilder(parser.groups_ast)
         start_symbol, rules = builder.build(ast)
-
+        print("Выражение корректно синтаксически и удовлетворяет ограничениям.")
         print("Построенная КС-грамматика (каркас):")
         print("Начальный нетерминал:", start_symbol)
         for nt in rules:
@@ -482,7 +481,10 @@ def main():
                 rhs_str = " ".join(rhs) if rhs else "ε"
                 print(f"{nt} -> {rhs_str}")
         print("=" * 60)
-        print("Выражение корректно синтаксически и удовлетворяет ограничениям.")
+        for token in tokens:
+            print(token)
+        print("=" * 60)
+        print(ast)
 
     except RegexParserError as e:
         print("Ошибка:", e)
