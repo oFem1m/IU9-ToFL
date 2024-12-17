@@ -471,9 +471,6 @@ def main():
         ast = parser.parse()
         print(ast)
         print("=" * 60)
-        print("Выражение корректно синтаксически и удовлетворяет ограничениям.")
-        print("=" * 60)
-
         # Построим КС-грамматику
         builder = CFGBuilder(parser.groups_ast)
         start_symbol, rules = builder.build(ast)
@@ -484,6 +481,8 @@ def main():
             for rhs in rules[nt]:
                 rhs_str = " ".join(rhs) if rhs else "ε"
                 print(f"{nt} -> {rhs_str}")
+        print("=" * 60)
+        print("Выражение корректно синтаксически и удовлетворяет ограничениям.")
 
     except RegexParserError as e:
         print("Ошибка:", e)
