@@ -340,7 +340,20 @@ class CFGBuilder:
     def build(self, node):
         start = 'S'
         rules = {}
-        self.node_to_cfg(node, rules, start_symbol=start)
+
+        # Регистрируем G1 для группы 1
+        main_nt = self.node_to_cfg(node, rules)
+
+        # Добавляем правило для S -> main_nt (группа 1)
+        rules[start] = [[main_nt]]
+
+        # Убедимся, что все группы зарегистрированы
+        for group_id, ast in self.groups_ast.items():
+            if group_id not in self.group_nonterm:
+                nt = f"G{group_id}"
+                self.group_nonterm[group_id] = nt
+                self.node_to_cfg(ast, rules, start_symbol=nt)
+
         return start, rules
 
     def node_to_cfg(self, node, rules, start_symbol=None):
