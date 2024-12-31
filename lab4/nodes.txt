@@ -1,0 +1,22 @@
+ConcatNode([
+    GroupNode(
+        1,
+        AltNode([
+            CharNode('a'),
+            GroupNode(
+                2,
+                ConcatNode([
+                    CharNode('b'),
+                    CharNode('b')
+                ])
+            )
+        ])
+    ),
+    GroupNode(
+        3,
+        AltNode([
+            CharNode('a'),
+            ExprRefNode(2)
+        ])
+    )
+])
